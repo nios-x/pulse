@@ -201,3 +201,9 @@ export const pushSubscriptionSchema = z.object({
   keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
 });
 export const pushEndpointSchema = z.object({ endpoint: z.string().max(1000) });
+
+// ---------- Phase 11: family calls ----------
+
+export const callTicketSchema = z.object({ patientId: uuidField, targetUserId: uuidField });
+export const callStartSchema = z.object({ patientId: uuidField, calleeId: uuidField, video: z.boolean() });
+export const callEndSchema = z.object({ callId: uuidField });

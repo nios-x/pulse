@@ -27,6 +27,7 @@ export const PERMISSIONS = [
   "manage_members", // invite, remove, change roles
   "create_share_link",
   "delete_patient",
+  "start_call", // family calls (phase 11)
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -53,6 +54,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "receive_alerts",
     "manage_members",
     "create_share_link",
+    "start_call",
   ],
   family: [
     "view_summary",
@@ -63,6 +65,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "log_meals",
     "log_checkin",
     "receive_alerts",
+    "start_call",
   ],
 };
 

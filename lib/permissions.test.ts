@@ -39,6 +39,7 @@ const TABLE: Record<Permission, Record<Role, Cell>> = {
   manage_members: { owner: true, caregiver: "until_owner", family: false },
   create_share_link: { owner: true, caregiver: true, family: false },
   delete_patient: { owner: true, caregiver: false, family: false },
+  start_call: { owner: true, caregiver: true, family: true },
 };
 
 function expected(cell: Cell, scopes: readonly Scope[], patientHasOwner: boolean): boolean {

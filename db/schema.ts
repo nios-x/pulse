@@ -300,6 +300,23 @@ export const sentReminders = pgTable(
   (t) => [uniqueIndex("sent_reminders_uq").on(t.medicationId, t.date, t.slot, t.kind)]
 );
 
+// ---------- Family calls (phase 11) ----------
+
+export const callLogs = pgTable(
+  "call_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: patientId(),
+    callerId: uuid("caller_id").references(() => users.id, { onDelete: "set null" }),
+    calleeId: uuid("callee_id").references(() => users.id, { onDelete: "set null" }),
+    video: boolean("video").notNull().default(false),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("call_logs_patient_idx").on(t.patientId, t.startedAt)]
+);
+
 export type User = typeof users.$inferSelect;
 export type Patient = typeof patients.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;

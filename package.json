@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env db/seed.ts",
-    "db:demo-seed": "tsx --env-file=.env db/demo-seed.ts"
+    "db:demo-seed": "tsx --env-file=.env db/demo-seed.ts",
+    "signaling:dev": "tsx --env-file=.env signaling/server.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

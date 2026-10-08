@@ -31,6 +31,18 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/reminde
 
 The patient gets "Time for Metformin" at each dose time. Caregivers, and family members with the meds scope, get "Papa hasn't taken the 8 am dose" an hour later if it is still not ticked. `sent_reminders` stops duplicates, so running it more often is safe.
 
+## Family calls (phase 11)
+
+Audio and video calls between members of the same family, peer to peer over WebRTC. `signaling/server.ts` relays the call setup; it is its own small Node service:
+
+```bash
+bun run signaling:dev            # local, port 8080, reads SIGNALING_SECRET from .env
+```
+
+For production, deploy `signaling/` alone (for example with `render.yaml` on Render) with the same `SIGNALING_SECRET`, and set `NEXT_PUBLIC_SIGNALING_URL=wss://<signaling-host>` on the app. Add your own TURN server (`TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL`) so calls connect between mobile data and Wi-Fi. Render's free tier sleeps when idle, so open the app on both phones a few minutes before a demo.
+
+Only logged-in users can register (signed 10-minute token), only members of the same family get a call ticket (signed, 60 seconds), and every call uses a fresh peer connection. Calls are recorded in `call_logs`.
+
 ## Scripts
 
 | Script | What it does |
@@ -39,6 +51,7 @@ The patient gets "Time for Metformin" at each dose time. Caregivers, and family 
 | `bun run test` | Vitest unit tests for `lib/` (permissions, safety, adherence, insights) |
 | `bun run db:generate` / `db:migrate` / `db:studio` | drizzle-kit |
 | `bun run db:seed` | 3 users, 1 patient, 3 medicines, 7 days of logs |
+| `bun run signaling:dev` | The call signaling server on port 8080 |
 | `bun run db:demo-seed` | 60 days for the live demo: rice-dinner pattern, missed-dose streak, one high reading, two HbA1c |
 
 ## Where things live

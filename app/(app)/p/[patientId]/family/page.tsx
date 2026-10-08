@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { invites, memberships, users } from "@/db/schema";
+import { CallButtons } from "@/components/call/call-buttons";
 import { InviteForm } from "@/components/family/invite-form";
 import { MemberControls } from "@/components/family/member-controls";
 import { RevokeInviteButton } from "@/components/family/revoke-invite-button";
@@ -94,6 +95,11 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
                     {t(`role.${m.role}`)}
                   </Badge>
                 </div>
+                {permissions.start_call && m.userId !== user.id ? (
+                  <div className="flex justify-end">
+                    <CallButtons patientId={patientId} userId={m.userId} name={m.name} />
+                  </div>
+                ) : null}
                 {editable ? (
                   <MemberControls
                     patientId={patientId}
