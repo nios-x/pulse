@@ -1,7 +1,7 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { medications, medLogs, memberships, patients, pushSubscriptions, sentReminders } from "@/db/schema";
-import { istDate, istMinutes } from "@/lib/dates";
+import { addDays, istDate, istMinutes } from "@/lib/dates";
 import { formatSlot } from "@/lib/format";
 import { createT, isLocale } from "@/lib/i18n";
 import { can } from "@/lib/permissions";
@@ -21,7 +21,7 @@ export async function runReminderJob(now: Date) {
   const logs = await db
     .select({ medicationId: medLogs.medicationId, date: medLogs.date, slot: medLogs.slot })
     .from(medLogs)
-    .where(eq(medLogs.date, clock.today));
+    .where(gte(medLogs.date, addDays(clock.today, -1))); // yesterday too, for doses near midnight
   const candidates = remindersDue(meds, logs, clock);
 
   // Claim each reminder first; a reminder another run already sent is skipped.

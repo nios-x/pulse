@@ -29,6 +29,22 @@ describe("remindersDue", () => {
     expect(remindersDue([med], [], at(10, 30))).toEqual([]);
   });
 
+  it("still nudges after midnight for a late-evening dose", () => {
+    const night = { ...med, times: ["23:30"] };
+    expect(remindersDue([night], [], at(0, 35))).toEqual([
+      { medicationId: "m1", date: "2026-10-07", slot: "23:30", kind: "late" },
+    ]);
+    const logs = [{ medicationId: "m1", date: "2026-10-07", slot: "23:30" }];
+    expect(remindersDue([night], logs, at(0, 35))).toEqual([]);
+  });
+
+  it("a run just after midnight catches a reminder due just before", () => {
+    const night = { ...med, times: ["23:55"] };
+    expect(remindersDue([night], [], at(0, 10))).toEqual([
+      { medicationId: "m1", date: "2026-10-07", slot: "23:55", kind: "due" },
+    ]);
+  });
+
   it("skips stopped medicines", () => {
     expect(remindersDue([{ ...med, active: false }], [], at(8, 0))).toEqual([]);
   });
