@@ -59,6 +59,11 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
             {t("doctor.kicker", { days: SUMMARY_DAYS })}
           </p>
           <h1 className="text-2xl font-bold">{patient.name}</h1>
+          {patient.synthetic ? (
+            <p className="mt-0.5 inline-block rounded bg-warning/40 px-1.5 text-xs font-medium text-warning-foreground">
+              {t("demo.syntheticLong")}
+            </p>
+          ) : null}
           <p className="text-muted-foreground">
             {[age ? t("doctor.age", { age }) : null, patient.city, t("doctor.condition")].filter(Boolean).join(" · ")}
           </p>

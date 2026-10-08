@@ -114,7 +114,7 @@ export function MemberControls({
           <UserMinusIcon aria-hidden />
           {t("family.remove")}
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent closeLabel={t("common.close")}>
           <DialogTitle className="text-lg">{t("family.removeTitle", { name })}</DialogTitle>
           <DialogDescription className="text-base">{t("family.removeBody", { name })}</DialogDescription>
           <DialogFooter>

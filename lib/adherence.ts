@@ -23,7 +23,7 @@ export function takenSet(logs: readonly DoseLogLike[]): Set<string> {
  * Was this slot scheduled at all? Counting starts on the day the medicine was
  * added, so a dose earlier that same day can still be ticked.
  */
-export function isScheduled(med: MedLike, date: string, _slot?: string): boolean {
+export function isScheduled(med: MedLike, date: string): boolean {
   return date >= istDate(med.createdAt);
 }
 
@@ -55,7 +55,7 @@ export function doseGrid(
     cells: days.map((date) => ({
       date,
       slot,
-      status: isScheduled(med, date, slot)
+      status: isScheduled(med, date)
         ? doseStatus({ date, slot, taken: taken.has(key(med.id, date, slot)), clock })
         : "none",
     })),
@@ -79,7 +79,7 @@ export function adherence(
   for (const med of meds) {
     for (const date of dateRange(from, to)) {
       for (const slot of med.times) {
-        if (!isScheduled(med, date, slot)) continue;
+        if (!isScheduled(med, date)) continue;
         const status = doseStatus({ date, slot, taken: taken.has(key(med.id, date, slot)), clock });
         if (status === "taken") t++;
         else if (status === "missed") m++;
@@ -98,7 +98,7 @@ export function dueToday(meds: readonly MedLike[], logs: readonly DoseLogLike[],
   for (const med of meds) {
     if (!med.active) continue;
     for (const slot of med.times) {
-      if (!isScheduled(med, clock.today, slot)) continue;
+      if (!isScheduled(med, clock.today)) continue;
       if (timeToMinutes(slot) - DUE_EARLY_MINUTES > clock.nowMinutes) continue;
       out.push({ medicationId: med.id, date: clock.today, slot, taken: taken.has(key(med.id, clock.today, slot)) });
     }
@@ -122,9 +122,9 @@ export function missedSinceYesterday(
   for (const med of meds) {
     if (!med.active) continue;
     for (const slot of med.times) {
-      if (isScheduled(med, yesterday, slot) && !taken.has(key(med.id, yesterday, slot))) count++;
+      if (isScheduled(med, yesterday) && !taken.has(key(med.id, yesterday, slot))) count++;
       if (
-        isScheduled(med, clock.today, slot) &&
+        isScheduled(med, clock.today) &&
         timeToMinutes(slot) + graceMinutes <= clock.nowMinutes &&
         !taken.has(key(med.id, clock.today, slot))
       ) {

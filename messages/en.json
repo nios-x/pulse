@@ -272,5 +272,20 @@
   "doctor.moodTitle": "Weekly energy check (PHQ-2)",
   "doctor.moodScore": "Latest score {score} of 6, on {date}.",
   "doctor.noMood": "No weekly check in this period.",
-  "doctor.footer": "Patient-reported readings from a home glucometer, logged in the Pulse app. Plain averages, not a diagnosis."
+  "doctor.footer": "Patient-reported readings from a home glucometer, logged in the Pulse app. Plain averages, not a diagnosis.",
+  "common.close": "Close",
+  "demo.synthetic": "Synthetic demo",
+  "demo.syntheticLong": "Synthetic demo data, not a real patient",
+  "settings.title": "Profile settings",
+  "settings.limitsTitle": "Sugar limits",
+  "settings.limitsHint": "Change these only on the doctor's instruction. Readings below {urgentLow} or at {urgentHigh} and above are always urgent.",
+  "settings.low": "Low below (mg/dL)",
+  "settings.high": "High from (mg/dL)",
+  "settings.error.low": "Enter a number from 54 to 120",
+  "settings.error.high": "Enter a number from 160 to 400",
+  "settings.deleteTitle": "Delete all data",
+  "settings.deleteHint": "This permanently removes {name}'s profile, readings, meals, medicines, checks and doctor links for everyone in the family. It cannot be undone.",
+  "settings.deleteConfirm": "Type {name} to confirm",
+  "settings.delete": "Delete everything",
+  "settings.error.confirm": "The name doesn't match"
 }

@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pulse
 
-## Getting Started
+Hindi-first chronic care web app for Type 2 diabetes patients in India and their family. Mobile-first PWA built from `implememtation.md`, phases 0 to 9 (push reminders and family calls, phases 10 and 11, are not built).
 
-First, run the development server:
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+docker run -d --name pulse-db -e POSTGRES_USER=pulse -e POSTGRES_PASSWORD=pulse -e POSTGRES_DB=pulse -p 5433:5432 postgres:16-alpine
+cp .env.example .env          # DATABASE_URL=postgres://pulse:pulse@localhost:5433/pulse
+bun run db:migrate
+bun run db:demo-seed          # 60 days of synthetic data (or db:seed for 7 days)
+bun run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo accounts (password `demo1234`), all synthetic:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Who | Email | Role |
+| --- | --- | --- |
+| Ramesh Sharma (Papa) | ramesh@pulse.demo | Patient (owner) |
+| Rahul Sharma (son) | rahul@pulse.demo | Caregiver |
+| Sunita Sharma (Maa) | maa@pulse.demo | Family |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Script | What it does |
+| --- | --- |
+| `bun run dev` / `build` / `start` | Next.js |
+| `bun run test` | Vitest unit tests for `lib/` (permissions, safety, adherence, insights) |
+| `bun run db:generate` / `db:migrate` / `db:studio` | drizzle-kit |
+| `bun run db:seed` | 3 users, 1 patient, 3 medicines, 7 days of logs |
+| `bun run db:demo-seed` | 60 days for the live demo: rice-dinner pattern, missed-dose streak, one high reading, two HbA1c |
 
-To learn more about Next.js, take a look at the following resources:
+## Where things live
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `lib/permissions.ts`: roles, scopes, `can()` and `requirePermission()` (the real gate, 403 via `forbidden()`).
+- `lib/safety.ts`: fixed safety rules and all safety copy (English and Hindi). The Hindi copy is a draft for the team to review.
+- `lib/insights.ts`, `lib/adherence.ts`: plain averages and dose bookkeeping, pure and tested.
+- `lib/i18n.ts` + `messages/en.json`, `messages/hi.json`: every UI string; Hindi is the default.
+- `app/share/[token]`: the doctor summary, no login, prints on one A4 page.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All times are India time (`lib/dates.ts`).

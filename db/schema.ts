@@ -65,6 +65,7 @@ export const patients = pgTable("patients", {
   condition: text("condition").notNull().default("type2_diabetes"),
   glucoseLow: smallint("glucose_low").notNull().default(70),
   glucoseHigh: smallint("glucose_high").notNull().default(300),
+  synthetic: boolean("synthetic").notNull().default(false), // demo data, labelled in the UI
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 });

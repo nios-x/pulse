@@ -81,7 +81,7 @@ export async function createDemoFamily(startDate: string) {
   const createdAt = istDateTime(startDate, "07:00");
   const [patient] = await db
     .insert(patients)
-    .values({ name: "Ramesh Sharma", birthYear: 1964, city: "Kanpur", createdBy: rahul.id, createdAt })
+    .values({ name: "Ramesh Sharma", birthYear: 1964, city: "Kanpur", synthetic: true, createdBy: rahul.id, createdAt })
     .returning();
 
   const all: Scope[] = ["vitals", "meds", "meals", "mood"];

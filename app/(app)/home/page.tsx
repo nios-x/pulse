@@ -105,7 +105,7 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
 
       {medsToday ? (
         <div className="mt-6">
-          <DueNowSection patientId={active.id} meds={medsToday.meds} logs={medsToday.logs} clock={clock} />
+          <DueNowSection patientId={active.id} meds={medsToday.meds} logs={medsToday.logs} clock={clock} compact />
         </div>
       ) : null}
 

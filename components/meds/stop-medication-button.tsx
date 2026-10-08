@@ -30,7 +30,7 @@ export function StopMedicationButton({
       <DialogTrigger render={<Button variant="destructive" size="touch" className="w-full" />}>
         {t("meds.stop")}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent closeLabel={t("common.close")}>
         <DialogTitle className="text-lg">{t("meds.stopTitle", { name })}</DialogTitle>
         <DialogDescription className="text-base">{t("meds.stopBody")}</DialogDescription>
         <DialogFooter>

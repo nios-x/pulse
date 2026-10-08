@@ -16,7 +16,7 @@ export function AppMenu({ children }: { children: ReactNode }) {
       >
         <MenuIcon />
       </SheetTrigger>
-      <SheetContent side="right" className="w-[85vw] max-w-xs gap-0">
+      <SheetContent side="right" className="w-[85vw] max-w-xs gap-0" closeLabel={t("common.close")}>
         <SheetHeader>
           <SheetTitle className="text-lg">{t("menu.title")}</SheetTitle>
         </SheetHeader>

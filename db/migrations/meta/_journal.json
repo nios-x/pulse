@@ -15,6 +15,13 @@
       "when": 1791476076352,
       "tag": "0001_futuristic_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791478721219,
+      "tag": "0002_wonderful_leader",
+      "breakpoints": true
     }
   ]
 }

@@ -179,3 +179,17 @@ export const labSchema = z.object({
 export const shareLinkSchema = z.object({ patientId: uuidField, includeMood: z.boolean() });
 export const shareLinkRefSchema = z.object({ patientId: uuidField, linkId: uuidField });
 export const shareTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{32}$/);
+
+// ---------- Phase 9: profile settings ----------
+
+const limit = (key: MessageKey) => z.coerce.number(msg(key)).int(msg(key));
+export const limitsSchema = z
+  .object({
+    patientId: uuidField,
+    glucoseLow: limit("settings.error.low").min(54, msg("settings.error.low")).max(120, msg("settings.error.low")),
+    glucoseHigh: limit("settings.error.high").min(160, msg("settings.error.high")).max(400, msg("settings.error.high")),
+  });
+export const deletePatientSchema = z.object({
+  patientId: uuidField,
+  confirmName: z.string().trim(),
+});

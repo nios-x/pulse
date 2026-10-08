@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BellIcon, LifeBuoyIcon, LineChartIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
+import { BellIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
 import { getT } from "@/lib/i18n-server";
 import { countUnread } from "@/lib/alerts";
 import { getAccess } from "@/lib/permissions";
@@ -38,8 +38,13 @@ export async function AppShell({
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-1 border-b bg-background/95 pr-2 pl-4 backdrop-blur">
         <div className="min-w-0 flex-1">
-          <p className="text-xs leading-none font-medium tracking-wide text-primary">
+          <p className="flex items-center gap-1.5 text-xs leading-none font-medium tracking-wide text-primary">
             {t("app.name")}
+            {access?.patient.synthetic ? (
+              <span className="rounded bg-warning/40 px-1 py-px text-[0.65rem] text-warning-foreground">
+                {t("demo.synthetic")}
+              </span>
+            ) : null}
           </p>
           <p className="truncate text-lg leading-tight font-semibold">
             {patient?.name ?? t("app.tagline")}
@@ -72,6 +77,11 @@ export async function AppShell({
           {patient && can?.answer_mood ? (
             <MenuLink href={`/p/${patient.id}/check`} icon={SunIcon}>
               {t("check.menu")}
+            </MenuLink>
+          ) : null}
+          {patient && can?.edit_patient ? (
+            <MenuLink href={`/p/${patient.id}/settings`} icon={SettingsIcon}>
+              {t("settings.title")}
             </MenuLink>
           ) : null}
           <LanguageSwitch className="my-4" />

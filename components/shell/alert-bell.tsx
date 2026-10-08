@@ -13,7 +13,12 @@ const POLL_MS = 30_000;
 export function AlertBell({ patientId, initialCount }: { patientId: string; initialCount: number }) {
   const t = useT();
   const [count, setCount] = useState(initialCount);
-  useEffect(() => setCount(initialCount), [initialCount]);
+  // A fresh server count (page load or refresh) replaces the polled one.
+  const [serverCount, setServerCount] = useState(initialCount);
+  if (initialCount !== serverCount) {
+    setServerCount(initialCount);
+    setCount(initialCount);
+  }
   useEffect(() => {
     const id = setInterval(async () => {
       if (document.visibilityState !== "visible") return;

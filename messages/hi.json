@@ -272,5 +272,20 @@
   "doctor.moodTitle": "साप्ताहिक ऊर्जा जाँच (PHQ-2)",
   "doctor.moodScore": "ताज़ा स्कोर 6 में से {score}, {date} को।",
   "doctor.noMood": "इस अवधि में कोई साप्ताहिक जाँच नहीं।",
-  "doctor.footer": "घर के ग्लूकोमीटर से मरीज़ द्वारा दर्ज रीडिंग, Pulse ऐप में। सिर्फ़ औसत, यह कोई निदान नहीं है।"
+  "doctor.footer": "घर के ग्लूकोमीटर से मरीज़ द्वारा दर्ज रीडिंग, Pulse ऐप में। सिर्फ़ औसत, यह कोई निदान नहीं है।",
+  "common.close": "बंद करें",
+  "demo.synthetic": "डेमो डेटा",
+  "demo.syntheticLong": "नकली (सिंथेटिक) डेमो डेटा, असली मरीज़ नहीं",
+  "settings.title": "प्रोफ़ाइल सेटिंग",
+  "settings.limitsTitle": "शुगर की सीमाएँ",
+  "settings.limitsHint": "इन्हें सिर्फ़ डॉक्टर के कहने पर बदलें। {urgentLow} से कम या {urgentHigh} और उससे ज़्यादा की रीडिंग हमेशा तुरंत वाली मानी जाती है।",
+  "settings.low": "इससे कम पर लो (mg/dL)",
+  "settings.high": "इससे ज़्यादा पर हाई (mg/dL)",
+  "settings.error.low": "54 से 120 के बीच की संख्या लिखें",
+  "settings.error.high": "160 से 400 के बीच की संख्या लिखें",
+  "settings.deleteTitle": "सारा डेटा मिटाएँ",
+  "settings.deleteHint": "इससे परिवार में सभी के लिए {name} की प्रोफ़ाइल, रीडिंग, खाना, दवाइयाँ, जाँच और डॉक्टर लिंक हमेशा के लिए मिट जाएँगे। इसे वापस नहीं लाया जा सकता।",
+  "settings.deleteConfirm": "पक्का करने के लिए {name} लिखें",
+  "settings.delete": "सब कुछ मिटाएँ",
+  "settings.error.confirm": "नाम मेल नहीं खाता"
 }
