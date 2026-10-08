@@ -86,7 +86,7 @@ export function MealCamera({ onPhoto, onClose }: { onPhoto: (dataUrl: string) =>
             muted
             // Some cameras send a tiny first frame; wait for a real picture.
             onLoadedData={(e) => setReady(e.currentTarget.videoWidth >= 64)}
-            onResize={(e) => setReady(e.currentTarget.videoWidth >= 64)}
+            onTimeUpdate={(e) => setReady(e.currentTarget.videoWidth >= 64)}
             className="size-full object-cover"
           />
         )}
