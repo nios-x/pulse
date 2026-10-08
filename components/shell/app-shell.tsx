@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BellIcon, LifeBuoyIcon, SunIcon, type LucideIcon } from "lucide-react";
+import { BellIcon, LifeBuoyIcon, LineChartIcon, SunIcon, type LucideIcon } from "lucide-react";
 import { getT } from "@/lib/i18n-server";
 import { countUnread } from "@/lib/alerts";
 import { getAccess } from "@/lib/permissions";
@@ -54,6 +54,11 @@ export async function AppShell({
             <LifeBuoyIcon className="size-5" aria-hidden />
             {t("help.menu")}
           </Link>
+          {patient && can?.view_insights ? (
+            <MenuLink href={`/p/${patient.id}/insights`} icon={LineChartIcon}>
+              {t("insights.title")}
+            </MenuLink>
+          ) : null}
           {patient && can?.receive_alerts ? (
             <MenuLink href={`/p/${patient.id}/alerts`} icon={BellIcon}>
               {t("alerts.title")}

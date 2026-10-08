@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { HeartHandshakeIcon, PencilLineIcon, SunIcon } from "lucide-react";
+import { ChevronRightIcon, HeartHandshakeIcon, LineChartIcon, PencilLineIcon, SunIcon } from "lucide-react";
 import { db } from "@/db";
 import { moodChecks } from "@/db/schema";
 import { TodayTimeline } from "@/components/home/today-timeline";
@@ -120,6 +120,17 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           patientName={access.patient.name}
         />
       </section>
+
+      {can.view_insights ? (
+        <Link
+          href={`/p/${active.id}/insights`}
+          className="mt-6 flex items-center gap-3 rounded-xl border bg-card p-4 hover:bg-muted"
+        >
+          <LineChartIcon className="size-6 shrink-0 text-chart-1" aria-hidden />
+          <span className="flex-1 text-base font-medium">{t("home.insightsLink")}</span>
+          <ChevronRightIcon className="size-5 text-muted-foreground" aria-hidden />
+        </Link>
+      ) : null}
 
       {lastCheck ? (
         <p className="mt-6 flex items-center gap-2 rounded-xl bg-muted px-4 py-3 text-base">
