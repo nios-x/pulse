@@ -3,6 +3,7 @@ import { getT } from "@/lib/i18n-server";
 import { AppMenu } from "@/components/shell/app-menu";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { LanguageSwitch } from "@/components/shell/language-switch";
+import { SignOutButton } from "@/components/shell/sign-out-button";
 
 type ShellPatient = { id: string; name?: string } | null;
 
@@ -27,7 +28,8 @@ export async function AppShell({
           </p>
         </div>
         <AppMenu>
-          <LanguageSwitch className="mt-2" />
+          <LanguageSwitch className="mt-2 mb-4" />
+          <SignOutButton />
         </AppMenu>
       </header>
       <main className="flex-1 px-4 pt-4 pb-28">{children}</main>
