@@ -156,3 +156,11 @@ export const medicationSchema = z.object({
 export const medicationUpdateSchema = medicationSchema.extend({ medicationId: uuidField });
 export const medicationRefSchema = z.object({ patientId: uuidField, medicationId: uuidField });
 export const doseSchema = medicationRefSchema.extend({ slot: timeField, taken: z.boolean() });
+
+// ---------- Phase 6: safety net ----------
+
+export const patientRefSchema = z.object({ patientId: uuidField });
+export const alertRefSchema = z.object({ patientId: uuidField, alertId: uuidField });
+const phqAnswer = z.number().int().min(0).max(3);
+export const moodSchema = z.object({ patientId: uuidField, q1: phqAnswer, q2: phqAnswer });
+export const followUpSchema = z.object({ patientId: uuidField, checkId: uuidField, answer: z.boolean() });

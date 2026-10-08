@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { DropletIcon } from "lucide-react";
-import { logGlucoseAction } from "@/app/(app)/p/[patientId]/log/actions";
+import { logGlucoseAction, type GlucoseState } from "@/app/(app)/p/[patientId]/log/actions";
+import { GlucoseAlertScreen } from "@/components/safety/glucose-alert-screen";
 import { useT } from "@/components/i18n-provider";
 import { ChoiceChips } from "@/components/form/choice-chips";
 import { FormMessage } from "@/components/form/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GlucoseContext } from "@/db/schema";
-import type { FormState } from "@/lib/validators";
 
 export function SugarCard({
   patientId,
@@ -19,11 +19,16 @@ export function SugarCard({
   defaultContext: GlucoseContext;
 }) {
   const t = useT();
-  const [state, action, pending] = useActionState<FormState, FormData>(logGlucoseAction, {});
+  const [state, action, pending] = useActionState<GlucoseState, FormData>(logGlucoseAction, {});
+  // The alert screen stays open until the person taps "I understand".
+  const [dismissed, setDismissed] = useState<GlucoseState | null>(null);
   const error = state.fieldErrors?.mgdl ?? state.fieldErrors?.context ?? state.error;
 
   return (
     <Card>
+      {state.alert && dismissed !== state ? (
+        <GlucoseAlertScreen alert={state.alert} contacts={state.contacts ?? []} onClose={() => setDismissed(state)} />
+      ) : null}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <DropletIcon className="size-5 text-destructive" aria-hidden />

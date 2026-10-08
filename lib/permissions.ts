@@ -154,3 +154,11 @@ export async function requirePermission(patientId: string, permission: Permissio
   if (!access || !can(access.membership, permission, access.ctx)) forbidden();
   return { user, ...access };
 }
+
+/** Same lookup as requirePermission, but returns null instead of a 403 (for optional UI). */
+export async function getAccess(patientId: string) {
+  const user = await requireUser();
+  if (!isUuid(patientId)) return null;
+  const access = await loadAccess(patientId, user.id);
+  return access ? { user, ...access } : null;
+}

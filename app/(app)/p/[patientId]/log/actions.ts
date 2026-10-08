@@ -3,8 +3,10 @@
 import { refresh } from "next/cache";
 import { db } from "@/db";
 import { dailyCheckins, glucoseReadings, meals } from "@/db/schema";
+import { callableMembers, createAlert } from "@/lib/alerts";
 import { istDate } from "@/lib/dates";
 import { requirePermission } from "@/lib/permissions";
+import { evaluateGlucose, type SafetyResult } from "@/lib/safety";
 import {
   checkinSchema,
   glucoseSchema,
@@ -14,16 +16,37 @@ import {
   type FormState,
 } from "@/lib/validators";
 
-export async function logGlucoseAction(_prev: FormState, formData: FormData): Promise<FormState> {
+export type GlucoseState = FormState & {
+  alert?: SafetyResult & { mgdl: number };
+  contacts?: { name: string; phone: string }[];
+};
+
+export async function logGlucoseAction(_prev: GlucoseState, formData: FormData): Promise<GlucoseState> {
   const raw = readForm(formData, ["patientId", "mgdl", "context"]);
   const parsed = glucoseSchema.safeParse(raw);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values: raw };
   const { patientId, mgdl, context } = parsed.data;
-  const { user } = await requirePermission(patientId, "log_glucose");
+  const { user, patient } = await requirePermission(patientId, "log_glucose");
 
-  await db.insert(glucoseReadings).values({ patientId, loggedBy: user.id, mgdl, context });
+  const [reading] = await db
+    .insert(glucoseReadings)
+    .values({ patientId, loggedBy: user.id, mgdl, context })
+    .returning({ id: glucoseReadings.id });
+
+  // Safety net: a dangerous reading writes an alert (bell for caregivers) and
+  // opens a full-screen message for whoever logged it.
+  const result = evaluateGlucose(mgdl, patient);
+  let contacts: GlucoseState["contacts"];
+  if (result) {
+    await createAlert({ patientId, loggedBy: user.id, ...result, sourceId: reading.id });
+    contacts = (await callableMembers(patientId, user.id)).map((m) => ({ name: m.name, phone: m.phone! }));
+  }
   refresh();
-  return { ok: true, values: { mgdl: String(mgdl) } };
+  return {
+    ok: true,
+    values: { mgdl: String(mgdl) },
+    ...(result ? { alert: { ...result, mgdl }, contacts } : {}),
+  };
 }
 
 export async function logMealAction(_prev: FormState, formData: FormData): Promise<FormState> {

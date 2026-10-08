@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { HeartHandshakeIcon, PencilLineIcon } from "lucide-react";
+import { desc, eq } from "drizzle-orm";
+import { HeartHandshakeIcon, PencilLineIcon, SunIcon } from "lucide-react";
+import { db } from "@/db";
+import { moodChecks } from "@/db/schema";
 import { TodayTimeline } from "@/components/home/today-timeline";
 import { DueNowSection } from "@/components/meds/due-now-section";
+import { CaregiverNotices } from "@/components/safety/caregiver-notices";
 import { AppShell } from "@/components/shell/app-shell";
 import { JoinCodeForm } from "@/components/profile/join-code-form";
 import { PatientSwitcher } from "@/components/profile/patient-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
-import { istDate, istMinutes } from "@/lib/dates";
+import { addDays, istDate, istMinutes, weekday } from "@/lib/dates";
 import { formatDay } from "@/lib/format";
 import { getT } from "@/lib/i18n-server";
 import { now } from "@/lib/now";
@@ -48,10 +52,24 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
   const current = await now();
   const today = istDate(current);
   const clock = { today, nowMinutes: istMinutes(current) };
-  const [timeline, medsToday] = await Promise.all([
-    getDayTimeline(active.id, today, access.permissions),
-    access.permissions.mark_dose ? loadMeds(active.id, today) : null,
+  const can = access.permissions;
+  const [timeline, medsToday, [lastCheck]] = await Promise.all([
+    getDayTimeline(active.id, today, can),
+    can.mark_dose ? loadMeds(active.id, today) : null,
+    can.view_mood
+      ? db
+          .select({ score: moodChecks.score, checkedAt: moodChecks.checkedAt })
+          .from(moodChecks)
+          .where(eq(moodChecks.patientId, active.id))
+          .orderBy(desc(moodChecks.checkedAt))
+          .limit(1)
+      : [],
   ]);
+  // Weekly check: a Monday prompt for the patient only, once a week.
+  const checkDue =
+    can.answer_mood &&
+    weekday(today) === 1 &&
+    (!lastCheck || istDate(lastCheck.checkedAt) < addDays(today, -5));
   return (
     <AppShell patient={access.patient}>
       <PatientSwitcher patients={patients} activeId={active.id} />
@@ -65,6 +83,25 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           {t("home.logNow")}
         </Link>
       </div>
+
+      {access.membership.role === "caregiver" ? (
+        <div className="mt-6">
+          <CaregiverNotices patient={access.patient} now={current} />
+        </div>
+      ) : null}
+
+      {checkDue ? (
+        <Link
+          href={`/p/${active.id}/check`}
+          className="mt-6 flex items-center gap-3 rounded-xl border border-chart-2/50 bg-chart-2/15 p-4"
+        >
+          <SunIcon className="size-8 shrink-0 text-chart-2" aria-hidden />
+          <span className="flex flex-col">
+            <span className="text-base font-semibold">{t("check.promptTitle")}</span>
+            <span className="text-sm text-muted-foreground">{t("check.promptBody")}</span>
+          </span>
+        </Link>
+      ) : null}
 
       {medsToday ? (
         <div className="mt-6">
@@ -83,6 +120,17 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           patientName={access.patient.name}
         />
       </section>
+
+      {lastCheck ? (
+        <p className="mt-6 flex items-center gap-2 rounded-xl bg-muted px-4 py-3 text-base">
+          <SunIcon className="size-5 shrink-0 text-chart-2" aria-hidden />
+          {t(access.membership.role === "owner" ? "check.lastOwn" : "check.lastShared", {
+            name: access.patient.name,
+            score: lastCheck.score,
+            date: formatDay(istDate(lastCheck.checkedAt), locale),
+          })}
+        </p>
+      ) : null}
 
       <p className="mt-6 text-sm text-muted-foreground">
         {t(`role.${access.membership.role}.you`, { name: access.patient.name })}
