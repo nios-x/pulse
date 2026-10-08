@@ -1,7 +1,6 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { refresh } from "next/cache";
 import { db } from "@/db";
 import { invites, memberships, type Scope } from "@/db/schema";
@@ -9,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { createT } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n-server";
 import { generateInviteCode, INVITE_TTL_HOURS, whatsappShareUrl } from "@/lib/invites";
+import { originUrl } from "@/lib/origin";
 import { requirePermission, SCOPES } from "@/lib/permissions";
 import {
   inviteRefSchema,
@@ -26,13 +26,6 @@ function keepMoodUnlessOwner(next: Scope[], previous: readonly Scope[], actorIsO
   if (actorIsOwner) return next;
   const withoutMood = next.filter((s) => s !== "mood");
   return previous.includes("mood") ? [...withoutMood, "mood"] : withoutMood;
-}
-
-async function originUrl() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
 }
 
 export async function createInviteAction(_prev: FormState, formData: FormData): Promise<FormState> {

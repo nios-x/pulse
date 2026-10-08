@@ -10,6 +10,4 @@ export function generateInviteCode(): string {
   return code;
 }
 
-export function whatsappShareUrl(message: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(message)}`;
-}
+export { whatsappShareUrl } from "@/lib/whatsapp";

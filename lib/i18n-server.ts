@@ -12,3 +12,9 @@ export async function getT() {
   const locale = await getLocale();
   return { t: createT(locale), locale };
 }
+
+/** The saved language, or null when the viewer never picked one (e.g. a doctor opening a link). */
+export async function getSavedLocale(): Promise<Locale | null> {
+  const value = (await cookies()).get(LOCALE_COOKIE)?.value;
+  return isLocale(value) ? value : null;
+}

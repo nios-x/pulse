@@ -164,3 +164,18 @@ export const alertRefSchema = z.object({ patientId: uuidField, alertId: uuidFiel
 const phqAnswer = z.number().int().min(0).max(3);
 export const moodSchema = z.object({ patientId: uuidField, q1: phqAnswer, q2: phqAnswer });
 export const followUpSchema = z.object({ patientId: uuidField, checkId: uuidField, answer: z.boolean() });
+
+// ---------- Phase 8: doctor summary ----------
+
+export const labSchema = z.object({
+  patientId: uuidField,
+  value: z.coerce
+    .number(msg("share.error.hba1c"))
+    .min(3, msg("share.error.hba1c"))
+    .max(20, msg("share.error.hba1c"))
+    .transform((v) => Math.round(v * 10) / 10),
+  takenOn: z.iso.date(msg("share.error.date")),
+});
+export const shareLinkSchema = z.object({ patientId: uuidField, includeMood: z.boolean() });
+export const shareLinkRefSchema = z.object({ patientId: uuidField, linkId: uuidField });
+export const shareTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{32}$/);

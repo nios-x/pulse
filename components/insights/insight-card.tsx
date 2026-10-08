@@ -6,13 +6,15 @@ import { safetyText } from "@/lib/safety";
 
 /** The sentence for one insight. Wording says "seems to"; numbers are plain averages. */
 export function insightText(insight: Insight, t: Translate, locale: Locale): { title: string; body: string } {
+  // Food names sit mid-sentence: "after dinners with rice".
+  const food = (key: string) => (locale === "en" ? foodLabel(key, locale).toLowerCase() : foodLabel(key, locale));
   switch (insight.kind) {
     case "meal":
       return {
         title: t("insight.mealTitle"),
         body: t(insight.slot === "dinner" ? "insight.mealDinner" : "insight.meal", {
-          high: foodLabel(insight.highItem, locale),
-          low: foodLabel(insight.lowItem, locale),
+          high: food(insight.highItem),
+          low: food(insight.lowItem),
           highAvg: insight.highAvg,
           lowAvg: insight.lowAvg,
         }),
