@@ -8,6 +8,13 @@
       "when": 1791475799065,
       "tag": "0000_thin_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791476076352,
+      "tag": "0001_futuristic_whiplash",
+      "breakpoints": true
     }
   ]
 }
