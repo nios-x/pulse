@@ -1,6 +1,6 @@
 # Pulse
 
-Hindi-first chronic care web app for Type 2 diabetes patients in India and their family. Mobile-first PWA built from `implememtation.md`, phases 0 to 9 (push reminders and family calls, phases 10 and 11, are not built).
+Hindi-first chronic care web app for Type 2 diabetes patients in India and their family. Mobile-first PWA built from `implememtation.md`, phases 0 to 11.
 
 ## Run it
 
@@ -20,6 +20,16 @@ Demo accounts (password `demo1234`), all synthetic:
 | Ramesh Sharma (Papa) | ramesh@pulse.demo | Patient (owner) |
 | Rahul Sharma (son) | rahul@pulse.demo | Caregiver |
 | Sunita Sharma (Maa) | maa@pulse.demo | Family |
+
+## Push reminders (phase 10)
+
+`.env` needs VAPID keys (`npx web-push generate-vapid-keys`) and a `CRON_SECRET`. Each user turns on **Medicine reminders** in the menu. Then call the reminder job every 15 minutes from Vercel Cron or any scheduler:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/reminders
+```
+
+The patient gets "Time for Metformin" at each dose time. Caregivers, and family members with the meds scope, get "Papa hasn't taken the 8 am dose" an hour later if it is still not ticked. `sent_reminders` stops duplicates, so running it more often is safe.
 
 ## Scripts
 

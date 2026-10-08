@@ -267,6 +267,39 @@ export const auditLog = pgTable(
   (t) => [index("audit_patient_idx").on(t.patientId, t.createdAt)]
 );
 
+// ---------- Push reminders (phase 10) ----------
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
+    locale: varchar("locale", { length: 2 }).notNull().default("hi"), // language for the notification text
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_user_idx").on(t.userId)]
+);
+
+// One row per reminder sent, so a re-run of the cron never pushes twice.
+export const sentReminders = pgTable(
+  "sent_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    medicationId: uuid("medication_id")
+      .notNull()
+      .references(() => medications.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    slot: varchar("slot", { length: 5 }).notNull(),
+    kind: text("kind").$type<"due" | "late">().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("sent_reminders_uq").on(t.medicationId, t.date, t.slot, t.kind)]
+);
+
 export type User = typeof users.$inferSelect;
 export type Patient = typeof patients.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;

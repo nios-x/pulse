@@ -287,5 +287,11 @@
   "settings.deleteHint": "This permanently removes {name}'s profile, readings, meals, medicines, checks and doctor links for everyone in the family. It cannot be undone.",
   "settings.deleteConfirm": "Type {name} to confirm",
   "settings.delete": "Delete everything",
-  "settings.error.confirm": "The name doesn't match"
+  "settings.error.confirm": "The name doesn't match",
+  "push.toggle": "Medicine reminders",
+  "push.denied": "Blocked. Allow notifications for Pulse in Chrome settings.",
+  "push.dueTitle": "Time for {med}",
+  "push.dueBody": "Your {time} dose. Tap Taken after you take it.",
+  "push.lateTitle": "{name} hasn't taken the {time} dose",
+  "push.lateBody": "{med}. Tap to see Due now."
 }

@@ -287,5 +287,11 @@
   "settings.deleteHint": "इससे परिवार में सभी के लिए {name} की प्रोफ़ाइल, रीडिंग, खाना, दवाइयाँ, जाँच और डॉक्टर लिंक हमेशा के लिए मिट जाएँगे। इसे वापस नहीं लाया जा सकता।",
   "settings.deleteConfirm": "पक्का करने के लिए {name} लिखें",
   "settings.delete": "सब कुछ मिटाएँ",
-  "settings.error.confirm": "नाम मेल नहीं खाता"
+  "settings.error.confirm": "नाम मेल नहीं खाता",
+  "push.toggle": "दवा की याद",
+  "push.denied": "बंद है। Chrome की सेटिंग में Pulse के नोटिफ़िकेशन चालू करें।",
+  "push.dueTitle": "{med} लेने का समय",
+  "push.dueBody": "आपकी {time} की खुराक। लेने के बाद 'ले ली' दबाएँ।",
+  "push.lateTitle": "{name} ने {time} की खुराक नहीं ली",
+  "push.lateBody": "{med}। 'अभी लेनी है' देखने के लिए टैप करें।"
 }

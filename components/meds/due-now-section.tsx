@@ -34,7 +34,7 @@ export async function DueNowSection({
   if (items.length === 0 && !showEmpty) return null;
 
   return (
-    <section aria-labelledby="due-heading" className="flex flex-col gap-3">
+    <section id="due" aria-labelledby="due-heading" className="flex scroll-mt-16 flex-col gap-3">
       <h2 id="due-heading" className="text-lg font-semibold">
         {t("meds.dueNow")}
       </h2>

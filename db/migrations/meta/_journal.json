@@ -22,6 +22,13 @@
       "when": 1791478721219,
       "tag": "0002_wonderful_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791483784338,
+      "tag": "0003_overconfident_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

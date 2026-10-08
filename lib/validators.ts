@@ -193,3 +193,11 @@ export const deletePatientSchema = z.object({
   patientId: uuidField,
   confirmName: z.string().trim(),
 });
+
+// ---------- Phase 10: push reminders ----------
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https?$/ }).max(1000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+});
+export const pushEndpointSchema = z.object({ endpoint: z.string().max(1000) });

@@ -8,6 +8,7 @@ import { AlertBell } from "@/components/shell/alert-bell";
 import { AppMenu } from "@/components/shell/app-menu";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { LanguageSwitch } from "@/components/shell/language-switch";
+import { PushToggle } from "@/components/shell/push-toggle";
 import { SignOutButton } from "@/components/shell/sign-out-button";
 
 type ShellPatient = { id: string; name?: string } | null;
@@ -84,6 +85,7 @@ export async function AppShell({
               {t("settings.title")}
             </MenuLink>
           ) : null}
+          <PushToggle />
           <LanguageSwitch className="my-4" />
           <SignOutButton />
         </AppMenu>
