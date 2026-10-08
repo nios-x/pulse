@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { ChevronLeftIcon, ChevronRightIcon, HeartHandshakeIcon, LineChartIcon, PencilLineIcon, SunIcon } from "lucide-react";
 import { db } from "@/db";
 import { moodChecks } from "@/db/schema";
+import { AssistantLink } from "@/components/assistant/assistant-link";
 import { DoctorHome } from "@/components/doctor/doctor-home";
 import { MonthCalendar } from "@/components/home/month-calendar";
 import { TodayTimeline } from "@/components/home/today-timeline";
@@ -23,7 +24,7 @@ import { getT } from "@/lib/i18n-server";
 import { now } from "@/lib/now";
 import { loadMeds } from "@/lib/meds";
 import { listMyPatients } from "@/lib/patients";
-import { requirePermission } from "@/lib/permissions";
+import { canLog, requirePermission } from "@/lib/permissions";
 import { getDayTimeline } from "@/lib/timeline";
 
 export default async function HomePage({ searchParams }: PageProps<"/home">) {
@@ -100,10 +101,12 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           <p className="font-heading text-sm font-medium text-ink-3">{formatDay(today, locale, true)}</p>
           <h1 className="text-[2rem] leading-tight">{t("page.home")}</h1>
         </div>
-        <Link href={`/p/${active.id}/log`} className={buttonVariants({ size: "touch", className: "rounded-full px-5" })}>
-          <PencilLineIcon aria-hidden />
-          {t("home.logNow")}
-        </Link>
+        {canLog(can) ? (
+          <Link href={`/p/${active.id}/log`} className={buttonVariants({ size: "touch", className: "rounded-full px-5" })}>
+            <PencilLineIcon aria-hidden />
+            {t("home.logNow")}
+          </Link>
+        ) : null}
       </div>
 
       {access.membership.role === "caregiver" ? (
@@ -188,6 +191,8 @@ export default async function HomePage({ searchParams }: PageProps<"/home">) {
           })}
         </p>
       ) : null}
+
+      <AssistantLink patientId={active.id} className="mt-6" />
 
       <p className="mt-8 text-sm text-ink-3">
         {t(`role.${access.membership.role}.you`, { name: access.patient.name })}

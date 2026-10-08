@@ -20,7 +20,7 @@ export default async function LogPage({ params }: PageProps<"/p/[patientId]/log"
 
   const [checkin] = permissions.log_checkin
     ? await db
-        .select({ walked: dailyCheckins.walked, sleep: dailyCheckins.sleep })
+        .select({ steps: dailyCheckins.steps, sleepMinutes: dailyCheckins.sleepMinutes })
         .from(dailyCheckins)
         .where(and(eq(dailyCheckins.patientId, patientId), eq(dailyCheckins.date, istDate(current))))
         .limit(1)
@@ -35,7 +35,7 @@ export default async function LogPage({ params }: PageProps<"/p/[patientId]/log"
       ) : null}
       {permissions.log_meals ? <MealCard patientId={patientId} defaultSlot={slotForTime(minutes)} photoEnabled={foodPhotoEnabled()} /> : null}
       {permissions.log_checkin ? (
-        <DayCard patientId={patientId} walked={checkin?.walked ?? null} sleep={checkin?.sleep ?? null} />
+        <DayCard patientId={patientId} steps={checkin?.steps ?? null} sleepMinutes={checkin?.sleepMinutes ?? null} />
       ) : null}
       {!permissions.log_glucose && !permissions.log_meals && !permissions.log_checkin ? (
         <p className="rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 px-4 py-6 text-center text-ink-3">{t("log.viewOnly")}</p>

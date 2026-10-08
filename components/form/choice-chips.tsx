@@ -25,6 +25,7 @@ export function ChoiceChips({
   columns,
   required,
   variant = "pill",
+  box = false,
 }: {
   name: string;
   type?: "radio" | "checkbox";
@@ -37,6 +38,8 @@ export function ChoiceChips({
   required?: boolean;
   /** "tile": a small card with the icon on top, like a grocery category. */
   variant?: "pill" | "tile";
+  /** Pills show a tick box, empty until picked, so a pick-many grid reads as checkboxes. */
+  box?: boolean;
 }) {
   const tile = variant === "tile";
   // Free-flowing pills show a check when picked; grid rows have no room for it.
@@ -73,6 +76,7 @@ export function ChoiceChips({
                   ? "relative min-h-20 flex-col justify-center gap-1 rounded-xl border-transparent px-1 text-center text-sm leading-tight shadow-card peer-checked:border-violet peer-checked:bg-violet-wash peer-checked:text-violet-deep"
                   : "rounded-full peer-checked:border-lilac peer-checked:bg-lilac peer-checked:text-violet-deep",
                 "[&>.chk]:hidden peer-checked:[&>.chk]:flex",
+                "peer-checked:[&>.box]:border-violet peer-checked:[&>.box]:bg-violet peer-checked:[&>.box>svg]:opacity-100",
                 "peer-focus-visible:ring-4 peer-focus-visible:ring-violet/20 peer-disabled:opacity-40",
                 option.description && "flex-col items-start gap-0.5 rounded-xl py-3",
                 chipClassName
@@ -81,6 +85,10 @@ export function ChoiceChips({
               {tile ? (
                 <span className="chk absolute top-1.5 right-1.5 size-5 items-center justify-center rounded-full bg-violet text-white">
                   <CheckIcon className="size-3.5 stroke-3" aria-hidden />
+                </span>
+              ) : box ? (
+                <span className="box flex size-5 shrink-0 items-center justify-center rounded-md border-2 border-edge-strong bg-card text-white transition-colors">
+                  <CheckIcon className="size-3.5 stroke-3 opacity-0" aria-hidden />
                 </span>
               ) : pillCheck && !option.description ? (
                 <CheckIcon className="chk size-4 shrink-0 stroke-3" aria-hidden />

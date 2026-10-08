@@ -192,8 +192,10 @@ export const dailyCheckins = pgTable(
     patientId: patientId(),
     loggedBy: loggedBy(),
     date: date("date", { mode: "string" }).notNull(),
-    walked: boolean("walked"),
-    sleep: smallint("sleep"), // 1 bad, 2 okay, 3 good
+    walked: boolean("walked"), // derived from steps on save (steps > 0)
+    steps: integer("steps"),
+    sleep: smallint("sleep"), // old 1 bad, 2 okay, 3 good rating; no longer written
+    sleepMinutes: smallint("sleep_minutes"), // time slept last night
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("daily_checkins_patient_date_uq").on(t.patientId, t.date)]
@@ -284,7 +286,7 @@ export const pushSubscriptions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     endpoint: text("endpoint").notNull().unique(),
     keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
-    locale: varchar("locale", { length: 2 }).notNull().default("hi"), // language for the notification text
+    locale: varchar("locale", { length: 2 }).notNull().default("en"), // language for the notification text
     createdAt: createdAt(),
   },
   (t) => [index("push_user_idx").on(t.userId)]

@@ -17,17 +17,24 @@ const ITEMS: { key: MessageKey; segment: string; icon: typeof HouseIcon; seed: n
   { key: "nav.family", segment: "family", icon: UsersIcon, seed: 44 },
 ];
 
-export function BottomNav({ patientId }: { patientId: string | null }) {
+/** `canLog` false (a doctor) drops the Log tab: doctors only read, book calls and call. */
+export function BottomNav({ patientId, canLog = true }: { patientId: string | null; canLog?: boolean }) {
   const t = useT();
   const pathname = usePathname();
+  const items = canLog ? ITEMS : ITEMS.filter((i) => i.segment !== "log");
 
   return (
     <nav
       aria-label={t("nav.main")}
       className="no-print fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-5 rounded-t-3xl bg-card px-2 pt-1 shadow-[0_-10px_30px_-18px_rgb(45_12_87/0.35)]">
-        {ITEMS.map(({ key, segment, icon: Icon, seed }) => {
+      <ul
+        className={cn(
+          "mx-auto grid max-w-md rounded-t-3xl bg-card px-2 pt-1 shadow-[0_-10px_30px_-18px_rgb(45_12_87/0.35)]",
+          items.length === 5 ? "grid-cols-5" : "grid-cols-4"
+        )}
+      >
+        {items.map(({ key, segment, icon: Icon, seed }) => {
           const href =
             segment === "home"
               ? patientId

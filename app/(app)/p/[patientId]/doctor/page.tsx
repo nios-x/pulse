@@ -50,7 +50,7 @@ export default async function DoctorCallsPage({ params }: PageProps<"/p/[patient
     const callee = isDoctor ? { id: b.memberId, name: b.memberName } : { id: b.doctorId, name: b.doctorName };
     // The family joins inside the time window; the doctor may also call early once confirmed.
     const callable = mine && (b.phase === "now" || (isDoctor && b.phase === "upcoming"));
-    const canCancel = (permissions.book_call || b.doctorId === user.id) && ["requested", "upcoming", "now"].includes(b.phase);
+    const canCancel = permissions.book_call && ["requested", "upcoming", "now"].includes(b.phase);
     return (
       <li key={b.id} className="flex flex-col gap-3 sheet rounded-xl p-4">
         <div className="flex items-start justify-between gap-3">

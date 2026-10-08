@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { medications, medLogs, memberships, patients, pushSubscriptions, sentReminders } from "@/db/schema";
 import { addDays, istDate, istMinutes } from "@/lib/dates";
 import { formatSlot } from "@/lib/format";
-import { createT, isLocale } from "@/lib/i18n";
+import { createT, DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
 import { can } from "@/lib/permissions";
 import { sendPush } from "@/lib/push";
 import { remindersDue } from "@/lib/reminders";
@@ -55,7 +55,7 @@ export async function runReminderJob(now: Date) {
     );
     for (const m of recipients) {
       for (const sub of subs.filter((s) => s.userId === m.userId)) {
-        const locale = isLocale(sub.locale) ? sub.locale : "hi";
+        const locale = isLocale(sub.locale) ? sub.locale : DEFAULT_LOCALE;
         const t = createT(locale);
         const vars = { med: `${med.name} ${med.dose}`.trim(), time: formatSlot(r.slot, locale), name: patient.name };
         const result = await sendPush(sub, {

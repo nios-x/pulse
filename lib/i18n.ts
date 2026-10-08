@@ -1,11 +1,11 @@
 import en from "@/messages/en.json";
 import hi from "@/messages/hi.json";
 
-export const LOCALES = ["hi", "en"] as const;
+export const LOCALES = ["en", "hi"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-// Hindi-first: anyone without a saved choice sees Hindi.
-export const DEFAULT_LOCALE: Locale = "hi";
+// English by default: anyone without a saved choice sees English. Hindi is one tap away.
+export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_COOKIE = "pulse_lang";
 
 export type MessageKey = keyof typeof en;

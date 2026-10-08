@@ -1,4 +1,5 @@
-import { CheckIcon, PencilIcon, XIcon } from "lucide-react";
+import { CheckIcon, PencilIcon, Trash2Icon, XIcon } from "lucide-react";
+import { DeleteMedicationsButton, MedicationList } from "@/components/meds/delete-medications";
 import { DoseGrid } from "@/components/meds/dose-grid";
 import { DueNowSection } from "@/components/meds/due-now-section";
 import { MedicationForm } from "@/components/meds/medication-form";
@@ -48,37 +49,57 @@ export default async function MedsPage({ params }: PageProps<"/p/[patientId]/med
 
       {permissions.view_meds && meds.length ? (
         <section aria-labelledby="week-heading" className="flex flex-col gap-3">
-          <h2 id="week-heading" className="text-xl font-semibold">
-            {t("meds.lastWeek")}
-          </h2>
-          {meds.map((med) => (
-            <Card key={med.id} size="sm">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {med.name} <span className="font-normal text-ink-3">{med.dose}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <DoseGrid rows={doseGrid(med, logs, days, clock)} days={days} />
-                {permissions.manage_meds ? (
-                  <details className="group rounded-xl bg-violet-wash/60">
-                    <summary className="action-link flex h-11 cursor-pointer list-none items-center gap-2 px-3">
-                      <PencilIcon className="size-4" aria-hidden />
-                      {t("meds.edit")}
-                    </summary>
-                    <div className="flex flex-col gap-3 border-t border-edge p-3">
-                      <MedicationForm
-                        patientId={patientId}
-                        medication={{ id: med.id, name: med.name, dose: med.dose, times: med.times }}
-                        timeLabels={timeLabels}
-                      />
-                      <StopMedicationButton patientId={patientId} medicationId={med.id} name={med.name} />
-                    </div>
-                  </details>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
+          <MedicationList
+            patientId={patientId}
+            canManage={permissions.manage_meds}
+            heading={
+              <h2 id="week-heading" className="text-xl font-semibold">
+                {t("meds.lastWeek")}
+              </h2>
+            }
+            items={meds.map((med) => ({
+              id: med.id,
+              name: med.name,
+              card: (
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      {med.name} <span className="font-normal text-ink-3">{med.dose}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <DoseGrid rows={doseGrid(med, logs, days, clock)} days={days} />
+                    {permissions.manage_meds ? (
+                      <details className="group rounded-xl bg-violet-wash/60">
+                        <summary className="action-link flex h-11 cursor-pointer list-none items-center gap-2 px-3">
+                          <PencilIcon className="size-4" aria-hidden />
+                          {t("meds.edit")}
+                        </summary>
+                        <div className="flex flex-col gap-3 border-t border-edge p-3">
+                          <MedicationForm
+                            patientId={patientId}
+                            medication={{ id: med.id, name: med.name, dose: med.dose, times: med.times }}
+                            timeLabels={timeLabels}
+                          />
+                          <StopMedicationButton patientId={patientId} medicationId={med.id} name={med.name} />
+                          <DeleteMedicationsButton
+                            patientId={patientId}
+                            meds={[{ id: med.id, name: med.name }]}
+                            trigger={
+                              <>
+                                <Trash2Icon aria-hidden />
+                                {t("meds.delete")}
+                              </>
+                            }
+                          />
+                        </div>
+                      </details>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ),
+            }))}
+          />
           <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="flex size-4 items-center justify-center rounded-full bg-go text-white">

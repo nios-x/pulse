@@ -6,8 +6,9 @@ import bcrypt from "bcryptjs";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { SESSION_COOKIE } from "@/lib/session-cookie";
 
-export const SESSION_COOKIE = "pulse_session";
+export { SESSION_COOKIE };
 const SESSION_DAYS = 30;
 
 export type CurrentUser = { id: string; name: string; email: string; phone: string | null; isDoctor: boolean };

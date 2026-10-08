@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarClockIcon, ChevronRightIcon, StethoscopeIcon } from "lucide-react";
+import { AssistantLink } from "@/components/assistant/assistant-link";
 import { CallButtons } from "@/components/call/call-buttons";
 import { BookingResponse } from "@/components/doctor/booking-controls";
 import { MemberCard } from "@/components/health/member-card";
@@ -33,12 +34,12 @@ export async function DoctorHome() {
       </p>
       <h1 className="mt-1 text-[2rem] leading-tight">{t("home.welcome", { name: user.name })}</h1>
 
-      {calls.length ? (
-        <section aria-labelledby="calls-heading" className="mt-6 flex flex-col gap-3">
-          <h2 id="calls-heading" className="text-xl font-semibold">
-            {t("doctorHome.calls")}
-            {waiting ? <span className="font-normal text-ink-2"> · {t("doctorHome.waiting", { count: waiting })}</span> : null}
-          </h2>
+      <section aria-labelledby="calls-heading" className="mt-6 flex flex-col gap-3">
+        <h2 id="calls-heading" className="text-xl font-semibold">
+          {t("doctorHome.calls")}
+          {waiting ? <span className="font-normal text-ink-2"> · {t("doctorHome.waiting", { count: waiting })}</span> : null}
+        </h2>
+        {calls.length ? (
           <ul className="flex flex-col gap-3">
             {calls.map((c) => (
               <li key={c.id} className="sheet flex flex-col gap-3 rounded-2xl p-4">
@@ -71,8 +72,13 @@ export async function DoctorHome() {
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
+        ) : (
+          <p className="sheet flex items-center gap-3 rounded-2xl p-4 text-base text-ink-2">
+            <CalendarClockIcon className="size-5 shrink-0 text-violet" aria-hidden />
+            {t("doctorHome.noCalls")}
+          </p>
+        )}
+      </section>
 
       <section aria-labelledby="patients-heading" className="mt-6 flex flex-col gap-3">
         <h2 id="patients-heading" className="text-xl font-semibold">
@@ -95,6 +101,8 @@ export async function DoctorHome() {
           </div>
         )}
       </section>
+
+      <AssistantLink patientId={null} className="mt-6" />
 
       <div className="sheet mt-6 rounded-2xl p-4">
         <JoinCodeForm />

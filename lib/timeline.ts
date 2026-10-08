@@ -22,7 +22,7 @@ export type TimelineItem =
   | (Base & { kind: "reading"; mgdl: number; context: GlucoseContext })
   | (Base & { kind: "meal"; slot: MealSlot; items: string[]; details: DetectedFood[] | null })
   | (Base & { kind: "dose"; medName: string; dose: string; slot: string })
-  | (Base & { kind: "checkin"; walked: boolean | null; sleep: number | null });
+  | (Base & { kind: "checkin"; walked: boolean | null; steps: number | null; sleepMinutes: number | null });
 
 /** "You logged", "Papa logged" or "Rahul logged for Papa". */
 export function whoLogged(args: {
@@ -103,7 +103,8 @@ export async function getDayTimeline(patientId: string, date: string, permission
         loggedBy: dailyCheckins.loggedBy,
         loggerName: logger.name,
         walked: dailyCheckins.walked,
-        sleep: dailyCheckins.sleep,
+        steps: dailyCheckins.steps,
+        sleepMinutes: dailyCheckins.sleepMinutes,
       })
       .from(dailyCheckins)
       .leftJoin(logger, eq(dailyCheckins.loggedBy, logger.id))

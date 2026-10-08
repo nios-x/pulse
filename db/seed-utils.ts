@@ -198,7 +198,8 @@ export async function fillDays(
         loggedBy: ramesh.id,
         date,
         walked: plan.walked,
-        sleep: rand.pick([2, 3, 3, 2, 1]),
+        steps: plan.walked ? rand.int(3500, 8500) : 0,
+        sleepMinutes: rand.pick([330, 360, 390, 420, 450, 480]),
       });
     }
 

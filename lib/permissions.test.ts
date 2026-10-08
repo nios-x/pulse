@@ -31,8 +31,8 @@ const TABLE: Record<Permission, Record<Role, Cell>> = {
   mark_dose: { owner: true, caregiver: true, family: true, doctor: false },
   log_meals: { owner: true, caregiver: true, family: true, doctor: false },
   log_checkin: { owner: true, caregiver: true, family: true, doctor: false },
-  log_labs: { owner: true, caregiver: true, family: false, doctor: true },
-  edit_patient: { owner: true, caregiver: true, family: false, doctor: true },
+  log_labs: { owner: true, caregiver: true, family: false, doctor: false },
+  edit_patient: { owner: true, caregiver: true, family: false, doctor: false },
   view_mood: { owner: true, caregiver: ["mood"], family: false, doctor: ["mood"] },
   answer_mood: { owner: true, caregiver: false, family: false, doctor: false },
   view_insights: { owner: true, caregiver: ["vitals", "meals"], family: false, doctor: ["vitals", "meals"] },
@@ -131,6 +131,15 @@ describe("doctor", () => {
     expect(can(doctor, "view_vitals", ctx)).toBe(true);
     expect(can(doctor, "view_insights", ctx)).toBe(true);
     for (const p of ["log_glucose", "log_meals", "mark_dose", "manage_meds", "receive_alerts", "manage_members", "delete_patient"] as const) {
+      expect(can(doctor, p, ctx)).toBe(false);
+    }
+  });
+
+  it("only views, answers booked calls and calls; never writes to the profile", () => {
+    for (const p of ["view_summary", "view_meds", "view_meals", "answer_booking", "start_call"] as const) {
+      expect(can(doctor, p, ctx)).toBe(true);
+    }
+    for (const p of ["log_labs", "edit_patient", "log_checkin", "book_call", "create_share_link"] as const) {
       expect(can(doctor, p, ctx)).toBe(false);
     }
   });

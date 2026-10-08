@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { daypartOf, loadFamily, upcomingFor } from "@/lib/family";
 import { formatDay, formatSlot, formatTime } from "@/lib/format";
 import { getT } from "@/lib/i18n-server";
+import { canLog } from "@/lib/permissions";
 import { requireView } from "@/lib/view-as";
 import { cn } from "@/lib/utils";
 
@@ -158,10 +159,12 @@ export default async function MemberOverview({ params }: PageProps<"/p/[patientI
         </div>
 
         <aside className="flex min-w-0 flex-col gap-6">
-          <Link href={`/p/${patientId}/log`} className={buttonVariants({ size: "xl", className: "w-full" })}>
-            <PencilLineIcon aria-hidden />
-            {t("home.logFor", { name: m.firstName })}
-          </Link>
+          {canLog(can) ? (
+            <Link href={`/p/${patientId}/log`} className={buttonVariants({ size: "xl", className: "w-full" })}>
+              <PencilLineIcon aria-hidden />
+              {t("home.logFor", { name: m.firstName })}
+            </Link>
+          ) : null}
 
           <section aria-labelledby="health-heading" className="sheet rounded-2xl p-5">
             {demo ? (

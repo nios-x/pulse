@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ASSISTANT_MAX_CHARS } from "@/lib/assistant";
 import { FOOD_KEYS } from "@/lib/foods";
 import { LOCALES, type MessageKey } from "@/lib/i18n";
 
@@ -133,28 +134,40 @@ export const mealSchema = z
   })
   .refine((m) => m.items.length > 0 || (m.details?.length ?? 0) > 0, { ...msg("log.error.items"), path: ["items"] });
 
+export const MAX_SLEEP_MINUTES = 24 * 60;
+
 export const checkinSchema = z.object({
   patientId: uuidField,
-  walked: z.boolean().optional(),
-  sleep: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  steps: z.number().int().min(0).max(100_000).optional(),
+  sleepMinutes: z.number().int().min(0).max(MAX_SLEEP_MINUTES).optional(),
 });
 
 // ---------- Phase 5: medicines ----------
 
 const timeField = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, msg("meds.error.times"));
 
-export const medicationSchema = z.object({
-  patientId: uuidField,
+export const MAX_MED_TIMES = 6;
+export const MAX_MEDS_AT_ONCE = 10;
+
+/** One medicine as typed in the form. */
+export const medicationEntrySchema = z.object({
   name: z.string().trim().min(1, msg("meds.error.name")).max(60, msg("meds.error.name")),
   dose: z.string().trim().max(40, msg("meds.error.dose")),
   times: z
     .array(timeField)
     .transform((t) => [...new Set(t)].sort())
-    .pipe(z.array(z.string()).min(1, msg("meds.error.times")).max(6, msg("meds.error.times"))),
+    .pipe(z.array(z.string()).min(1, msg("meds.error.times")).max(MAX_MED_TIMES, msg("meds.error.tooManyTimes"))),
 });
 
-export const medicationUpdateSchema = medicationSchema.extend({ medicationId: uuidField });
+/** Several medicines added in one go. */
+export const medicationsAddSchema = z.object({
+  patientId: uuidField,
+  meds: z.array(medicationEntrySchema).min(1).max(MAX_MEDS_AT_ONCE),
+});
+
+export const medicationUpdateSchema = medicationEntrySchema.extend({ patientId: uuidField, medicationId: uuidField });
 export const medicationRefSchema = z.object({ patientId: uuidField, medicationId: uuidField });
+export const medicationsDeleteSchema = z.object({ patientId: uuidField, medicationIds: z.array(uuidField).min(1).max(50) });
 export const doseSchema = medicationRefSchema.extend({ slot: timeField, taken: z.boolean() });
 
 // ---------- Phase 6: safety net ----------
@@ -246,3 +259,16 @@ export const bookCallSchema = z.object({
 });
 export const bookingRefSchema = z.object({ patientId: uuidField, bookingId: uuidField });
 export const respondBookingSchema = bookingRefSchema.extend({ accept: z.boolean() });
+
+// ---------- Pulse Assistant ----------
+
+const chatTurn = z.object({ role: z.enum(["user", "assistant"]), text: z.string().trim().min(1).max(2000) });
+export const assistantSchema = z.object({
+  patientId: uuidField.nullable(),
+  messages: z
+    .array(chatTurn)
+    .min(1)
+    .max(40)
+    .refine((m) => m.at(-1)!.role === "user", msg("assistant.error.failed"))
+    .refine((m) => m.at(-1)!.text.length <= ASSISTANT_MAX_CHARS, msg("assistant.error.tooLong")),
+});

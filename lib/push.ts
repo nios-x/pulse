@@ -50,5 +50,5 @@ export async function pushToUsers(
     .select({ endpoint: pushSubscriptions.endpoint, keys: pushSubscriptions.keys, locale: pushSubscriptions.locale })
     .from(pushSubscriptions)
     .where(inArray(pushSubscriptions.userId, userIds));
-  await Promise.all(subs.map((s) => sendPush(s, build(s.locale === "en" ? "en" : "hi"))));
+  await Promise.all(subs.map((s) => sendPush(s, build(s.locale === "hi" ? "hi" : "en"))));
 }

@@ -1,11 +1,9 @@
 import { DropletIcon, FootprintsIcon, PillIcon, UtensilsIcon } from "lucide-react";
 import { describeDetected } from "@/lib/food-photo";
 import { foodLabel } from "@/lib/foods";
-import { formatSlot, formatTime } from "@/lib/format";
+import { formatHours, formatSlot, formatTime } from "@/lib/format";
 import { getT } from "@/lib/i18n-server";
 import { whoLogged, type TimelineItem } from "@/lib/timeline";
-
-const SLEEP_KEYS = { 1: "sleep.bad", 2: "sleep.okay", 3: "sleep.good" } as const;
 
 export async function TodayTimeline({
   items,
@@ -56,8 +54,10 @@ export async function TodayTimeline({
             icon = <FootprintsIcon className="size-5 text-go" aria-hidden />;
             tint = "bg-mint-wash";
             const parts = [];
-            if (item.walked !== null) parts.push(item.walked ? t("timeline.walked") : t("timeline.notWalked"));
-            if (item.sleep) parts.push(`${t("log.sleep")}: ${t(SLEEP_KEYS[item.sleep as 1 | 2 | 3])}`);
+            if (item.steps !== null)
+              parts.push(t("timeline.steps", { steps: item.steps.toLocaleString(locale === "hi" ? "en-IN" : "en-US") }));
+            else if (item.walked !== null) parts.push(item.walked ? t("timeline.walked") : t("timeline.notWalked"));
+            if (item.sleepMinutes !== null) parts.push(t("timeline.sleep", { hours: formatHours(item.sleepMinutes) }));
             title = parts.join(" · ");
             break;
           }

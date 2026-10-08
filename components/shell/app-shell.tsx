@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BellIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
+import { BellIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, SparklesIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
 import { getT } from "@/lib/i18n-server";
 import { countUnread } from "@/lib/alerts";
-import { getAccess } from "@/lib/permissions";
+import { assistantEnabled } from "@/lib/gemini";
+import { getCurrentUser } from "@/lib/auth";
+import { canLog, getAccess } from "@/lib/permissions";
 import { CornerLeaf, PulseMark } from "@/components/shapes/shapes";
 import { AlertBell } from "@/components/shell/alert-bell";
 import { AppMenu } from "@/components/shell/app-menu";
@@ -11,6 +13,7 @@ import { BottomNav } from "@/components/shell/bottom-nav";
 import { LanguageSwitch } from "@/components/shell/language-switch";
 import { PushToggle } from "@/components/shell/push-toggle";
 import { SignOutButton } from "@/components/shell/sign-out-button";
+import { cn } from "@/lib/utils";
 
 type ShellPatient = { id: string; name?: string } | null;
 
@@ -39,6 +42,11 @@ export async function AppShell({
   const { t } = await getT();
   const access = patient ? await getAccess(patient.id) : null;
   const can = access?.permissions;
+  // Doctors only read, so they get no Log tab.
+  const showLog = access ? canLog(access.permissions) : !(await getCurrentUser())?.isDoctor;
+  // A doctor's own dashboard (no patient open) is just booked sessions and patients:
+  // every tab would be disabled there, so the bottom nav is left out.
+  const showNav = Boolean(patient) || showLog;
   const unread = access && can?.receive_alerts ? await countUnread(access.patient.id, access.membership.role) : null;
 
   return (
@@ -70,6 +78,11 @@ export async function AppShell({
             </span>
             {t("help.menu")}
           </Link>
+          {assistantEnabled() ? (
+            <MenuLink href={patient ? `/assistant?p=${patient.id}` : "/assistant"} icon={SparklesIcon}>
+              {t("assistant.menu")}
+            </MenuLink>
+          ) : null}
           {patient && can?.view_insights ? (
             <MenuLink href={`/p/${patient.id}/insights`} icon={LineChartIcon}>
               {t("insights.title")}
@@ -100,8 +113,8 @@ export async function AppShell({
           <SignOutButton />
         </AppMenu>
       </header>
-      <main className="relative flex-1 px-4 pt-3 pb-32">{children}</main>
-      <BottomNav patientId={patient?.id ?? null} />
+      <main className={cn("relative flex-1 px-4 pt-3", showNav ? "pb-32" : "pb-10")}>{children}</main>
+      {showNav ? <BottomNav patientId={patient?.id ?? null} canLog={showLog} /> : null}
     </div>
   );
 }

@@ -97,24 +97,24 @@ export async function respondBookingAction(input: { patientId: string; bookingId
   return { ok: true };
 }
 
-/** Cancel a booked call: the person who can book calls, or the doctor. */
+/** Cancel a booked call: only the family side that books calls. The doctor declines instead. */
 export async function cancelBookingAction(input: { patientId: string; bookingId: string }) {
   const parsed = bookingRefSchema.safeParse(input);
   if (!parsed.success) return { ok: false };
   const { patientId, bookingId } = parsed.data;
-  const { user, permissions } = await requirePermission(patientId, "view_summary");
-
-  const [booking] = await db
-    .select()
-    .from(callBookings)
-    .where(and(eq(callBookings.id, bookingId), eq(callBookings.patientId, patientId)))
-    .limit(1);
-  if (!booking || (!permissions.book_call && booking.doctorId !== user.id)) return { ok: false };
+  await requirePermission(patientId, "book_call");
 
   await db
     .update(callBookings)
     .set({ status: "cancelled", respondedAt: new Date() })
-    .where(and(eq(callBookings.id, bookingId), ne(callBookings.status, "declined"), ne(callBookings.status, "cancelled")));
+    .where(
+      and(
+        eq(callBookings.id, bookingId),
+        eq(callBookings.patientId, patientId),
+        ne(callBookings.status, "declined"),
+        ne(callBookings.status, "cancelled")
+      )
+    );
   refresh();
   return { ok: true };
 }

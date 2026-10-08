@@ -2,14 +2,14 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Pulse · शुगर की देखभाल",
+    name: "Pulse · Sugar care",
     short_name: "Pulse",
     description: "Sugar care for the whole family. पूरे परिवार के लिए शुगर की देखभाल।",
     start_url: "/home",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    lang: "hi",
+    lang: "en",
     background_color: "#f6f5fa",
     theme_color: "#7b3ff2",
     icons: [

@@ -1,51 +1,49 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { db } from "@/db";
 import { medications, medLogs } from "@/db/schema";
 import { istDate } from "@/lib/dates";
+import type { MessageKey } from "@/lib/i18n";
 import { requirePermission } from "@/lib/permissions";
 import {
   doseSchema,
   medicationRefSchema,
-  medicationSchema,
+  medicationsAddSchema,
+  medicationsDeleteSchema,
   medicationUpdateSchema,
   toFieldErrors,
   type FormState,
 } from "@/lib/validators";
 
-function readMedication(formData: FormData) {
-  const custom = String(formData.get("customTime") ?? "").trim();
-  return {
-    patientId: formData.get("patientId"),
-    medicationId: formData.get("medicationId") ?? undefined,
-    name: String(formData.get("name") ?? ""),
-    dose: String(formData.get("dose") ?? ""),
-    times: [...formData.getAll("times").map(String), ...(custom ? [custom] : [])],
-  };
-}
+export type MedicationInput = { name: string; dose: string; times: string[] };
 
-export async function addMedicationAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const raw = readMedication(formData);
-  const parsed = medicationSchema.safeParse(raw);
+/** Adds one or more medicines at once. Field errors come back as "<row>.<field>", e.g. "1.name". */
+export async function addMedicationsAction(input: { patientId: string; meds: MedicationInput[] }): Promise<FormState> {
+  const parsed = medicationsAddSchema.safeParse(input);
   if (!parsed.success) {
-    return { fieldErrors: toFieldErrors(parsed.error), values: { name: raw.name, dose: raw.dose } };
+    const fieldErrors: Partial<Record<string, MessageKey>> = {};
+    for (const issue of parsed.error.issues) {
+      const [, row, field] = issue.path;
+      const key = typeof row === "number" && field ? `${row}.${String(field)}` : "form";
+      fieldErrors[key] ??= key === "form" ? "common.error" : (issue.message as MessageKey);
+    }
+    return { fieldErrors };
   }
-  const { patientId, name, dose, times } = parsed.data;
+  const { patientId, meds } = parsed.data;
   const { user } = await requirePermission(patientId, "manage_meds");
 
-  await db.insert(medications).values({ patientId, loggedBy: user.id, name, dose, times });
+  await db.insert(medications).values(meds.map((m) => ({ patientId, loggedBy: user.id, ...m })));
   refresh();
-  return { ok: true, values: { name } };
+  return { ok: true, values: { name: meds[0].name, count: String(meds.length) } };
 }
 
-export async function updateMedicationAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const raw = readMedication(formData);
-  const parsed = medicationUpdateSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { fieldErrors: toFieldErrors(parsed.error), values: { name: raw.name, dose: raw.dose } };
-  }
+export async function updateMedicationAction(
+  input: MedicationInput & { patientId: string; medicationId: string }
+): Promise<FormState> {
+  const parsed = medicationUpdateSchema.safeParse(input);
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
   const { patientId, medicationId, name, dose, times } = parsed.data;
   await requirePermission(patientId, "manage_meds");
 
@@ -67,6 +65,20 @@ export async function stopMedicationAction(input: { patientId: string; medicatio
     .update(medications)
     .set({ active: false })
     .where(and(eq(medications.id, medicationId), eq(medications.patientId, patientId)));
+  refresh();
+  return { ok: true };
+}
+
+/** Deletes medicines for good, with their dose history (logs cascade). For ones added by mistake. */
+export async function deleteMedicationsAction(input: { patientId: string; medicationIds: string[] }) {
+  const parsed = medicationsDeleteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false };
+  const { patientId, medicationIds } = parsed.data;
+  await requirePermission(patientId, "manage_meds");
+
+  await db
+    .delete(medications)
+    .where(and(inArray(medications.id, medicationIds), eq(medications.patientId, patientId)));
   refresh();
   return { ok: true };
 }

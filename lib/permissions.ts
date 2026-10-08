@@ -70,9 +70,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "receive_alerts",
     "start_call",
   ],
-  // A doctor joins by invite, reads what the patient shares, records lab results
-  // and sugar limits, and takes calls. Never logs daily data or manages the family.
-  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "log_labs", "edit_patient", "start_call", "answer_booking"],
+  // A doctor joins by invite and only reads what the patient shares, answers booked
+  // calls and calls the family. Never writes to the profile or manages the family.
+  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "start_call", "answer_booking"],
 };
 
 /**
@@ -125,6 +125,11 @@ export function permissionMap(
   ctx: PermissionContext
 ): PermissionMap {
   return Object.fromEntries(PERMISSIONS.map((p) => [p, can(membership, p, ctx)])) as PermissionMap;
+}
+
+/** Whether the Log screen has anything for this member (doctors only read). */
+export function canLog(map: PermissionMap): boolean {
+  return map.log_glucose || map.log_meals || map.log_checkin;
 }
 
 /** Default scopes offered when inviting someone with this role. Mood is always off. */

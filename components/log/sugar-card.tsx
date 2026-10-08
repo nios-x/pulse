@@ -10,6 +10,7 @@ import { FormMessage } from "@/components/form/text-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GlucoseContext } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 export function SugarCard({
   patientId,
@@ -40,7 +41,13 @@ export function SugarCard({
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <input type="hidden" name="patientId" value={patientId} />
-          <label className="flex items-baseline gap-3 rounded-2xl bg-violet-wash px-4 py-2 focus-within:ring-4 focus-within:ring-violet/20">
+          {/* The number sits right against its unit, the pair centred in the box. */}
+          <label
+            className={cn(
+              "flex items-baseline justify-center gap-2 rounded-2xl bg-violet-wash px-4 py-3 transition-shadow focus-within:ring-2 focus-within:ring-violet/50",
+              state.fieldErrors?.mgdl && "ring-2 ring-alert/60 focus-within:ring-alert/60"
+            )}
+          >
             <span className="sr-only">{t("log.sugarLabel")}</span>
             <input
               name="mgdl"
@@ -51,10 +58,10 @@ export function SugarCard({
               placeholder="000"
               defaultValue={state.ok ? "" : state.values?.mgdl}
               aria-invalid={state.fieldErrors?.mgdl ? true : undefined}
-              className="figure h-20 w-36 min-w-0 flex-1 bg-transparent text-6xl! font-bold outline-none placeholder:text-violet-soft/60 aria-invalid:text-alert-ink"
+              className="figure h-20 w-[3.2ch] min-w-0 bg-transparent text-right text-6xl! font-bold outline-none placeholder:text-violet-soft/50 aria-invalid:text-alert-ink"
               required
             />
-            <span className="font-heading text-lg font-medium text-ink-2">mg/dL</span>
+            <span className="font-heading text-xl font-medium text-ink-2">mg/dL</span>
           </label>
           <ChoiceChips
             name="context"
