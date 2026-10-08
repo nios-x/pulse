@@ -138,3 +138,21 @@ export const checkinSchema = z.object({
   walked: z.boolean().optional(),
   sleep: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
+
+// ---------- Phase 5: medicines ----------
+
+const timeField = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, msg("meds.error.times"));
+
+export const medicationSchema = z.object({
+  patientId: uuidField,
+  name: z.string().trim().min(1, msg("meds.error.name")).max(60, msg("meds.error.name")),
+  dose: z.string().trim().max(40, msg("meds.error.dose")),
+  times: z
+    .array(timeField)
+    .transform((t) => [...new Set(t)].sort())
+    .pipe(z.array(z.string()).min(1, msg("meds.error.times")).max(6, msg("meds.error.times"))),
+});
+
+export const medicationUpdateSchema = medicationSchema.extend({ medicationId: uuidField });
+export const medicationRefSchema = z.object({ patientId: uuidField, medicationId: uuidField });
+export const doseSchema = medicationRefSchema.extend({ slot: timeField, taken: z.boolean() });
