@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 
@@ -42,7 +42,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.id, token), gt(sessions.expiresAt, new Date())))
+    .where(and(eq(sessions.id, token), gt(sessions.expiresAt, sql`now()`)))
     .limit(1);
   return row ?? null;
 });

@@ -70,3 +70,43 @@ export const nextPathSchema = z
   .string()
   .regex(/^\/(?!\/)[\w\-/]*$/)
   .catch("/home");
+
+// ---------- Phase 3: profiles, invites, members ----------
+
+const uuidField = z.uuid();
+const roleField = z.enum(["owner", "caregiver", "family"]);
+const scopeList = z.array(z.enum(["vitals", "meds", "meals", "mood"])).transform((s) => [...new Set(s)]);
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((s) => s || null);
+
+export const createPatientSchema = z.object({
+  name: z.string().trim().min(1, msg("profile.error.name")).max(80, msg("profile.error.name")),
+  forWhom: z.enum(["me", "family"], msg("profile.error.forWhom")),
+  birthYear: z
+    .string()
+    .trim()
+    .refine((s) => s === "" || (/^\d{4}$/.test(s) && +s >= 1900 && +s <= new Date().getFullYear()), msg("profile.error.birthYear"))
+    .transform((s) => (s ? Number(s) : null)),
+  city: optionalText(60),
+});
+
+export const inviteSchema = z.object({
+  patientId: uuidField,
+  role: roleField,
+  scopes: scopeList,
+});
+
+/** 6 characters, any case, spaces ignored. */
+export const inviteCodeSchema = z
+  .string()
+  .transform((s) => s.replace(/\s/g, "").toUpperCase())
+  .pipe(z.string().regex(/^[A-Z0-9]{6}$/, msg("join.error.code")));
+
+export const memberRefSchema = z.object({ patientId: uuidField, membershipId: uuidField });
+export const memberRoleSchema = memberRefSchema.extend({ role: z.enum(["caregiver", "family"]) });
+export const memberScopesSchema = memberRefSchema.extend({ scopes: scopeList });
+export const inviteRefSchema = z.object({ patientId: uuidField, inviteId: uuidField });

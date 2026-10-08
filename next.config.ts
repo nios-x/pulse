@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    // forbidden() renders app/forbidden.tsx and answers Server Actions with 403.
+    authInterrupts: true,
     // Only validate segments that explicitly opt in with `export const instant`.
     // Pulse renders per request (session + language cookie), see app/layout.tsx.
     instantInsights: {
