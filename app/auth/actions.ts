@@ -13,6 +13,7 @@ import {
   inviteCodeSchema,
   nextPathSchema,
   readForm,
+  resetPasswordSchema,
   signInSchema,
   signUpSchema,
   toFieldErrors,
@@ -37,7 +38,8 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   }
 
   await createSession(user.id);
-  redirect(nextPathSchema.parse(raw.next));
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
 }
 
 /**
@@ -86,32 +88,37 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
     redirect(`/home?p=${own.patientId}`);
   }
 
-  // The invite decides the role, so the doctor choice on the form is not used here.
-  const isDoctor = (await findActiveInvite(code.data))?.role === "doctor";
-  let inviteError: MessageKey | undefined;
-  const result = await db
-    .transaction(async (tx) => {
-      const userId = await createUser({ ...parsed.data, isDoctor }, tx);
-      if (!userId) return null;
+  await createSession(user.id);
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
+}
 
-      const joined = await redeemInvite(tx, code.data, userId);
-      if (joined.error) {
-        // A bad invite fails the whole sign-up, so the user can retry with the same email.
-        inviteError = joined.error;
-        tx.rollback();
-      }
-      return { userId, patientId: joined.patientId };
-    })
-    .catch((e) => {
-      if (e instanceof TransactionRollbackError) return undefined;
-      throw e;
-    });
+export async function resetPasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const raw = readForm(formData, ["email", "password", "confirmPassword", "next"]);
+  const values = { email: raw.email };
+  const parsed = resetPasswordSchema.safeParse(raw);
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
 
-  if (inviteError) return { error: inviteError, values };
-  if (!result) return { fieldErrors: { email: "auth.error.taken" }, values };
+  const { email, password } = parsed.data;
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
 
-  await createSession(result.userId);
-  redirect(`/home?p=${result.patientId}`);
+  if (!user) {
+    return { error: "auth.error.userNotFound", values };
+  }
+
+  const passwordHash = await hashPassword(password);
+  await db
+    .update(users)
+    .set({ passwordHash })
+    .where(eq(users.id, user.id));
+
+  await createSession(user.id);
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
 }
 
 export async function signOutAction() {

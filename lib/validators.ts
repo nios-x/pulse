@@ -74,11 +74,25 @@ export const signUpSchema = z.object({
     .transform((s) => s || null),
 });
 
+export const resetPasswordSchema = z
+  .object({
+    email: emailField,
+    password: z
+      .string()
+      .min(8, msg("auth.error.passwordLength"))
+      .max(200, msg("auth.error.passwordLength")),
+    confirmPassword: z.string().min(1, msg("auth.error.passwordRequired")),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "auth.passwordMismatch",
+    path: ["confirmPassword"],
+  });
+
 /** Only same-site relative paths, so ?next= can't send people to another site. */
 export const nextPathSchema = z
   .string()
   .regex(/^\/(?!\/)[\w\-/]*$/)
-  .catch("/home");
+  .catch("/select-condition");
 
 // ---------- Phase 3: profiles, invites, members ----------
 

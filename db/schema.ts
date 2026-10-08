@@ -325,30 +325,157 @@ export const callLogs = pgTable(
   (t) => [index("call_logs_patient_idx").on(t.patientId, t.startedAt)]
 );
 
-// A family member asks the doctor for a call at a set time; the doctor accepts or declines.
-export const callBookings = pgTable(
-  "call_bookings",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    doctorId: uuid("doctor_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    memberId: uuid("member_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    bookedBy: uuid("booked_by").references(() => users.id, { onDelete: "set null" }),
-    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
-    reason: text("reason"),
-    status: text("status").$type<"requested" | "accepted" | "declined" | "cancelled">().notNull().default("requested"),
-    respondedAt: timestamp("responded_at", { withTimezone: true }),
-    createdAt: createdAt(),
-  },
-  (t) => [
-    index("call_bookings_patient_idx").on(t.patientId, t.scheduledAt),
-    index("call_bookings_doctor_idx").on(t.doctorId, t.scheduledAt),
-  ]
-);
+// ---------- PCOS ----------
+
+export const pcosPhenotypeEnum = pgEnum('pcos_phenotype', [
+  'insulin_resistant', 'adrenal_stress', 'inflammatory', 'post_pill',
+]);
+export const symptomCategoryEnum = pgEnum('symptom_category', [
+  'acne_jawline', 'acne_forehead', 'hirsutism_face', 'hirsutism_body',
+  'hair_thinning', 'acanthosis', 'bloating', 'fatigue', 'brain_fog',
+  'anxiety', 'low_mood', 'irritability', 'craving_sugar', 'craving_carb',
+  'pelvic_pain', 'headache', 'insomnia', 'night_waking',
+]);
+export const movementTypeEnum = pgEnum('movement_type', [
+  'walk_10min', 'walk_30min', 'strength_training', 'yoga_gentle',
+  'yoga_restorative', 'pilates', 'swimming', 'dance', 'stretching',
+  'breathing_exercise', 'rest_day',
+]);
+export const graceDayReasonEnum = pgEnum('grace_day_reason', [
+  'flare_up', 'period', 'travel', 'mental_health', 'sick',
+]);
+
+export const pcosPrescriptions = pgTable("pcos_prescriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  doctorName: text("doctor_name").notNull(),
+  clinicName: text("clinic_name"),
+  prescriptionDate: date("prescription_date", { mode: "string" }).notNull(),
+  diagnosis: text("diagnosis").notNull().default("pcos"),
+  phenotype: pcosPhenotypeEnum("phenotype"),
+  medications: jsonb("medications").$type<{name: string, dose: string, frequency: string, notes?: string}[]>(),
+  supplements: jsonb("supplements").$type<{name: string, dose: string, frequency: string}[]>(),
+  dietaryAdvice: text("dietary_advice"),
+  exerciseAdvice: text("exercise_advice"),
+  followUpDate: date("follow_up_date", { mode: "string" }),
+  notes: text("notes"),
+  active: boolean("active").default(true),
+  createdAt: createdAt(),
+});
+
+export const pcosProfiles = pgTable("pcos_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }).unique(),
+  prescriptionId: uuid("prescription_id").references(() => pcosPrescriptions.id),
+  phenotype: pcosPhenotypeEnum("phenotype").notNull(),
+  onboardingAnswers: jsonb("onboarding_answers"),
+  cycleBaselineLength: smallint("cycle_baseline_length"),
+  diagnosisDate: date("diagnosis_date", { mode: "string" }),
+  createdAt: createdAt(),
+});
+
+export const cycleLogs = pgTable("cycle_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }),
+  flowIntensity: smallint("flow_intensity"),
+  symptoms: text("symptoms").array(),
+  notes: text("notes"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("cycle_logs_patient_start_idx").on(t.patientId, t.startDate)
+]);
+
+export const symptomLogs = pgTable("symptom_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  category: symptomCategoryEnum("category").notNull(),
+  severity: smallint("severity").notNull(),
+  notes: text("notes"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("symptom_logs_patient_date_idx").on(t.patientId, t.date)
+]);
+
+export const pcosFoodLogs = pgTable("pcos_food_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  slot: mealSlotEnum("slot").notNull(),
+  items: text("items").array().notNull(),
+  preMealAction: text("pre_meal_action"),
+  postMealAction: text("post_meal_action"),
+  eatenAt: timestamp("eaten_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [
+  index("pcos_food_logs_patient_date_idx").on(t.patientId, t.date)
+]);
+
+export const supplementLogs = pgTable("supplement_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  supplement: text("supplement").notNull(),
+  takenAt: timestamp("taken_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("supplement_logs_patient_date_supp_uq").on(t.patientId, t.date, t.supplement)
+]);
+
+export const movementLogs = pgTable("movement_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  type: movementTypeEnum("type").notNull(),
+  durationMinutes: smallint("duration_minutes"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("movement_logs_patient_date_idx").on(t.patientId, t.date)
+]);
+
+export const sleepLogs = pgTable("sleep_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  bedtime: varchar("bedtime", { length: 5 }),
+  wakeTime: varchar("wake_time", { length: 5 }),
+  quality: smallint("quality"),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("sleep_logs_patient_date_uq").on(t.patientId, t.date)
+]);
+
+export const graceDays = pgTable("grace_days", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  reason: graceDayReasonEnum("reason").notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex("grace_days_patient_date_uq").on(t.patientId, t.date)
+]);
+
+export const pcosDailyActions = pgTable("pcos_daily_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: patientId(),
+  loggedBy: loggedBy(),
+  date: date("date", { mode: "string" }).notNull(),
+  actionKey: text("action_key").notNull(),
+  completed: boolean("completed").default(false),
+  createdAt: createdAt(),
+}, (t) => [
+  index("pcos_daily_actions_patient_date_idx").on(t.patientId, t.date)
+]);
 
 export type User = typeof users.$inferSelect;
 export type Patient = typeof patients.$inferSelect;
@@ -358,3 +485,19 @@ export type MedLog = typeof medLogs.$inferSelect;
 export type GlucoseReading = typeof glucoseReadings.$inferSelect;
 export type Meal = typeof meals.$inferSelect;
 export type DailyCheckin = typeof dailyCheckins.$inferSelect;
+
+export type PcosPhenotype = (typeof pcosPhenotypeEnum.enumValues)[number];
+export type SymptomCategory = (typeof symptomCategoryEnum.enumValues)[number];
+export type MovementType = (typeof movementTypeEnum.enumValues)[number];
+export type GraceDayReason = (typeof graceDayReasonEnum.enumValues)[number];
+
+export type PcosPrescription = typeof pcosPrescriptions.$inferSelect;
+export type PcosProfile = typeof pcosProfiles.$inferSelect;
+export type CycleLog = typeof cycleLogs.$inferSelect;
+export type SymptomLog = typeof symptomLogs.$inferSelect;
+export type PcosFoodLog = typeof pcosFoodLogs.$inferSelect;
+export type SupplementLog = typeof supplementLogs.$inferSelect;
+export type MovementLog = typeof movementLogs.$inferSelect;
+export type SleepLog = typeof sleepLogs.$inferSelect;
+export type GraceDay = typeof graceDays.$inferSelect;
+export type PcosDailyAction = typeof pcosDailyActions.$inferSelect;

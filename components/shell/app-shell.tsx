@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BellIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, SparklesIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
+import { BellIcon, HeartPulseIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
 import { getT } from "@/lib/i18n-server";
 import { countUnread } from "@/lib/alerts";
 import { assistantEnabled } from "@/lib/gemini";
@@ -78,11 +78,12 @@ export async function AppShell({
             </span>
             {t("help.menu")}
           </Link>
-          {assistantEnabled() ? (
-            <MenuLink href={patient ? `/assistant?p=${patient.id}` : "/assistant"} icon={SparklesIcon}>
-              {t("assistant.menu")}
-            </MenuLink>
-          ) : null}
+          <MenuLink href="/select-condition" icon={HeartPulseIcon}>
+            {t("choose.title")}
+          </MenuLink>
+          <MenuLink href="/pcos" icon={HeartPulseIcon}>
+            PCOS Companion
+          </MenuLink>
           {patient && can?.view_insights ? (
             <MenuLink href={`/p/${patient.id}/insights`} icon={LineChartIcon}>
               {t("insights.title")}

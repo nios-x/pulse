@@ -12,7 +12,10 @@ export type AuditAction =
   | "member_removed"
   | "share_link_created"
   | "share_link_revoked"
-  | "patient_deleted";
+  | "patient_deleted"
+  | "pcos_patient_created"
+  | "pcos_prescription_recorded"
+  | "pcos_profile_created";
 
 type Executor = Pick<typeof db, "insert">;
 
