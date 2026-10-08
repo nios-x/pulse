@@ -6,6 +6,7 @@ import { MealCard } from "@/components/log/meal-card";
 import { SugarCard } from "@/components/log/sugar-card";
 import { istDate, istMinutes } from "@/lib/dates";
 import { slotForTime } from "@/lib/foods";
+import { foodPhotoEnabled } from "@/lib/gemini";
 import { getT } from "@/lib/i18n-server";
 import { now } from "@/lib/now";
 import { requirePermission } from "@/lib/permissions";
@@ -32,7 +33,7 @@ export default async function LogPage({ params }: PageProps<"/p/[patientId]/log"
       {permissions.log_glucose ? (
         <SugarCard patientId={patientId} defaultContext={minutes < 10 * 60 ? "fasting" : "after_meal"} />
       ) : null}
-      {permissions.log_meals ? <MealCard patientId={patientId} defaultSlot={slotForTime(minutes)} /> : null}
+      {permissions.log_meals ? <MealCard patientId={patientId} defaultSlot={slotForTime(minutes)} photoEnabled={foodPhotoEnabled()} /> : null}
       {permissions.log_checkin ? (
         <DayCard patientId={patientId} walked={checkin?.walked ?? null} sleep={checkin?.sleep ?? null} />
       ) : null}

@@ -1,4 +1,5 @@
 import { DropletIcon, FootprintsIcon, PillIcon, UtensilsIcon } from "lucide-react";
+import { describeDetected } from "@/lib/food-photo";
 import { foodLabel } from "@/lib/foods";
 import { formatSlot, formatTime } from "@/lib/format";
 import { getT } from "@/lib/i18n-server";
@@ -36,7 +37,12 @@ export async function TodayTimeline({
             break;
           case "meal":
             icon = <UtensilsIcon className="size-5 text-chart-2" aria-hidden />;
-            title = `${t(`slot.${item.slot}`)}: ${item.items.map((k) => foodLabel(k, locale)).join(", ")}`;
+            // Photo-logged meals name the actual dishes; chip-logged ones use the food list.
+            title = `${t(`slot.${item.slot}`)}: ${
+              item.details?.length
+                ? item.details.map((d) => describeDetected(d, locale)).join(", ")
+                : item.items.map((k) => foodLabel(k, locale)).join(", ")
+            }`;
             break;
           case "dose":
             icon = <PillIcon className="size-5 text-primary" aria-hidden />;

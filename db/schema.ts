@@ -14,6 +14,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { DetectedFood } from "@/lib/food-photo";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -173,6 +174,8 @@ export const meals = pgTable(
     loggedBy: loggedBy(),
     slot: mealSlotEnum("slot").notNull(),
     items: text("items").array().notNull(), // food keys from lib/foods.ts
+    // Foods recognised from a meal photo: names, portions, carb level. Null for chip-only logs.
+    details: jsonb("details").$type<DetectedFood[]>(),
     eatenAt: timestamp("eaten_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: createdAt(),
   },

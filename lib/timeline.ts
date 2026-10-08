@@ -14,12 +14,13 @@ import {
 } from "@/db/schema";
 import { addDays, istDateTime } from "@/lib/dates";
 import type { MessageKey, TranslateVars } from "@/lib/i18n";
+import type { DetectedFood } from "@/lib/food-photo";
 import type { PermissionMap } from "@/lib/permissions";
 
 type Base = { id: string; at: Date; loggedBy: string | null; loggerName: string | null };
 export type TimelineItem =
   | (Base & { kind: "reading"; mgdl: number; context: GlucoseContext })
-  | (Base & { kind: "meal"; slot: MealSlot; items: string[] })
+  | (Base & { kind: "meal"; slot: MealSlot; items: string[]; details: DetectedFood[] | null })
   | (Base & { kind: "dose"; medName: string; dose: string; slot: string })
   | (Base & { kind: "checkin"; walked: boolean | null; sleep: number | null });
 
@@ -73,6 +74,7 @@ export async function getDayTimeline(patientId: string, date: string, permission
             loggerName: logger.name,
             slot: meals.slot,
             items: meals.items,
+            details: meals.details,
           })
           .from(meals)
           .leftJoin(logger, eq(meals.loggedBy, logger.id))

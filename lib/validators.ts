@@ -127,11 +127,15 @@ export const glucoseSchema = z.object({
   context: z.enum(["fasting", "after_meal", "random"], msg("log.error.context")),
 });
 
-export const mealSchema = z.object({
-  patientId: uuidField,
-  slot: z.enum(["breakfast", "lunch", "dinner", "snack"], msg("log.error.slot")),
-  items: z.array(z.enum(FOOD_KEYS)).min(1, msg("log.error.items")).max(12),
-});
+export const mealSchema = z
+  .object({
+    patientId: uuidField,
+    slot: z.enum(["breakfast", "lunch", "dinner", "snack"], msg("log.error.slot")),
+    items: z.array(z.enum(FOOD_KEYS)).max(12),
+    // Foods recognised from a photo (optional), kept so the timeline can say "rajma chawal".
+    details: z.lazy(() => z.array(detectedFoodSchema).max(12)).optional(),
+  })
+  .refine((m) => m.items.length > 0 || (m.details?.length ?? 0) > 0, { ...msg("log.error.items"), path: ["items"] });
 
 export const checkinSchema = z.object({
   patientId: uuidField,
@@ -207,3 +211,29 @@ export const pushEndpointSchema = z.object({ endpoint: z.string().max(1000) });
 export const callTicketSchema = z.object({ patientId: uuidField, targetUserId: uuidField });
 export const callStartSchema = z.object({ patientId: uuidField, calleeId: uuidField, video: z.boolean() });
 export const callEndSchema = z.object({ callId: uuidField });
+
+// ---------- Meal photos (Gemini food recognition) ----------
+
+/** A downscaled JPEG/PNG/WEBP from the phone camera, as a data URL (under the 1 MB action limit). */
+export const mealPhotoSchema = z.object({
+  patientId: uuidField,
+  image: z
+    .string()
+    .max(950_000, msg("photo.error.tooBig"))
+    .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, msg("photo.error.failed")),
+});
+
+/** One food the AI saw. Also validates what we store in meals.details. */
+export const detectedFoodSchema = z.object({
+  key: z.enum([...FOOD_KEYS, "other"]),
+  name_en: z.string().trim().min(1).max(60),
+  name_hi: z.string().trim().min(1).max(60),
+  portion: z.string().trim().max(40),
+  carb: z.enum(["high", "medium", "low"]),
+});
+
+/** The AI's whole answer. It only names foods; there is nowhere for advice to go. */
+export const foodDetectionSchema = z.object({
+  is_food: z.boolean(),
+  items: z.array(detectedFoodSchema).max(12),
+});
