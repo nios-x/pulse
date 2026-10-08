@@ -1,0 +1,19 @@
+{
+  "app.name": "पल्स",
+  "app.tagline": "पूरे परिवार के लिए शुगर की देखभाल",
+  "nav.home": "होम",
+  "nav.log": "दर्ज करें",
+  "nav.meds": "दवाइयाँ",
+  "nav.family": "परिवार",
+  "nav.main": "मुख्य नेविगेशन",
+  "menu.open": "मेन्यू खोलें",
+  "menu.title": "मेन्यू",
+  "menu.language": "भाषा",
+  "lang.hi": "हिंदी",
+  "lang.en": "English",
+  "page.home": "आज",
+  "page.log": "आज का हाल दर्ज करें",
+  "page.meds": "दवाइयाँ",
+  "page.family": "परिवार",
+  "placeholder.soon": "यह स्क्रीन जल्द आ रही है।"
+}

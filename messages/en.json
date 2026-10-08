@@ -1,0 +1,19 @@
+{
+  "app.name": "Pulse",
+  "app.tagline": "Sugar care for the whole family",
+  "nav.home": "Home",
+  "nav.log": "Log",
+  "nav.meds": "Medicines",
+  "nav.family": "Family",
+  "nav.main": "Main navigation",
+  "menu.open": "Open menu",
+  "menu.title": "Menu",
+  "menu.language": "Language",
+  "lang.hi": "हिंदी",
+  "lang.en": "English",
+  "page.home": "Today",
+  "page.log": "Log today",
+  "page.meds": "Medicines",
+  "page.family": "Family",
+  "placeholder.soon": "This screen is coming soon."
+}
