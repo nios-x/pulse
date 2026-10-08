@@ -33,6 +33,15 @@ export async function PatientSwitcher({
         ))}
         <li>
           <Link
+            href="/pcos"
+            className="flex h-11 items-center gap-1.5 rounded-full border border-teal-500/40 bg-teal-50/60 dark:bg-teal-950/40 px-4 text-base font-semibold whitespace-nowrap text-teal-700 dark:text-teal-300 hover:bg-teal-100/70 transition-colors"
+          >
+            <span>🌸</span>
+            <span>PCOS Companion</span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/new"
             className="flex h-11 items-center gap-1 rounded-full border border-dashed px-4 text-base whitespace-nowrap text-muted-foreground hover:bg-muted"
           >

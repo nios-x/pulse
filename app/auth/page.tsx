@@ -12,6 +12,9 @@ export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
   if (await getCurrentUser()) redirect(next);
 
   const { t } = await getT();
+  const defaultTab =
+    params.tab === "signup" ? "signup" : params.tab === "forgot" ? "forgot" : "signin";
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 px-4 py-8">
       <header className="flex flex-col items-start gap-3">
@@ -23,7 +26,7 @@ export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
           <p className="text-lg text-muted-foreground">{t("app.tagline")}</p>
         </div>
       </header>
-      <AuthForms next={next} defaultTab={params.tab === "signup" ? "signup" : "signin"} />
+      <AuthForms next={next} defaultTab={defaultTab} />
       <LanguageSwitch className="mt-auto pt-4" />
     </main>
   );

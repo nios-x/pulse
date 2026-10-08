@@ -8,6 +8,7 @@ import { createSession, hashPassword, signOut, verifyPassword } from "@/lib/auth
 import {
   nextPathSchema,
   readForm,
+  resetPasswordSchema,
   signInSchema,
   signUpSchema,
   toFieldErrors,
@@ -32,7 +33,8 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   }
 
   await createSession(user.id);
-  redirect(nextPathSchema.parse(raw.next));
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
 }
 
 export async function signUpAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -57,7 +59,36 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
   if (!user) return { fieldErrors: { email: "auth.error.taken" }, values };
 
   await createSession(user.id);
-  redirect(nextPathSchema.parse(raw.next));
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
+}
+
+export async function resetPasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const raw = readForm(formData, ["email", "password", "confirmPassword", "next"]);
+  const values = { email: raw.email };
+  const parsed = resetPasswordSchema.safeParse(raw);
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
+
+  const { email, password } = parsed.data;
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (!user) {
+    return { error: "auth.error.userNotFound", values };
+  }
+
+  const passwordHash = await hashPassword(password);
+  await db
+    .update(users)
+    .set({ passwordHash })
+    .where(eq(users.id, user.id));
+
+  await createSession(user.id);
+  const destination = !raw.next || raw.next === "/home" ? "/select-condition" : nextPathSchema.parse(raw.next);
+  redirect(destination);
 }
 
 export async function signOutAction() {
