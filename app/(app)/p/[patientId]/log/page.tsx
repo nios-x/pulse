@@ -20,22 +20,25 @@ export default async function LogPage({ params }: PageProps<"/p/[patientId]/log"
 
   const [checkin] = permissions.log_checkin
     ? await db
-        .select({ walked: dailyCheckins.walked, sleep: dailyCheckins.sleep })
+        .select({ steps: dailyCheckins.steps, sleepMinutes: dailyCheckins.sleepMinutes })
         .from(dailyCheckins)
         .where(and(eq(dailyCheckins.patientId, patientId), eq(dailyCheckins.date, istDate(current))))
         .limit(1)
     : [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("page.log")}</h1>
+    <div className="flex flex-col gap-5">
+      <h1 className="text-[2rem] leading-tight">{t("page.log")}</h1>
       {/* Each card renders only if this member's role allows it. */}
       {permissions.log_glucose ? (
         <SugarCard patientId={patientId} defaultContext={minutes < 10 * 60 ? "fasting" : "after_meal"} />
       ) : null}
       {permissions.log_meals ? <MealCard patientId={patientId} defaultSlot={slotForTime(minutes)} photoEnabled={foodPhotoEnabled()} /> : null}
       {permissions.log_checkin ? (
-        <DayCard patientId={patientId} walked={checkin?.walked ?? null} sleep={checkin?.sleep ?? null} />
+        <DayCard patientId={patientId} steps={checkin?.steps ?? null} sleepMinutes={checkin?.sleepMinutes ?? null} />
+      ) : null}
+      {!permissions.log_glucose && !permissions.log_meals && !permissions.log_checkin ? (
+        <p className="rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 px-4 py-6 text-center text-ink-3">{t("log.viewOnly")}</p>
       ) : null}
     </div>
   );

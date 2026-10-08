@@ -58,3 +58,43 @@ export async function detectFoods(base64: string, mimeType: string): Promise<Foo
     return /^(429|503)\b|high demand|RESOURCE_EXHAUSTED|UNAVAILABLE/.test(message) ? "busy" : null;
   }
 }
+
+// ---------- Pulse Assistant ----------
+
+/** The assistant is offered only when a Gemini API key is configured. */
+export const assistantEnabled = foodPhotoEnabled;
+
+/**
+ * One assistant reply for the conversation so far. `store: false`, so Google
+ * keeps neither the question nor the health data in the prompt.
+ * "busy" when Google is overloaded or rate-limiting, null for any other failure.
+ */
+export async function askAssistant(
+  systemPrompt: string,
+  turns: readonly { role: "user" | "assistant"; text: string }[]
+): Promise<string | "busy" | null> {
+  try {
+    const interaction = await gemini().interactions.create(
+      {
+        model: MODEL,
+        system_instruction: systemPrompt,
+        input: turns.map((t) => ({
+          type: t.role === "user" ? ("user_input" as const) : ("model_output" as const),
+          content: [{ type: "text" as const, text: t.text }],
+        })),
+        store: false,
+        generation_config: { thinking_level: "low", temperature: 0.3 },
+      },
+      {
+        retries: { strategy: "attempt-count-backoff", maxRetries: 1, backoff: { initialInterval: 1000, maxInterval: 2000 } },
+        fetchOptions: { signal: AbortSignal.timeout(TOTAL_TIMEOUT_MS) },
+      }
+    );
+    const text = interaction.output_text?.trim();
+    return text ? text.slice(0, 2000) : null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("assistant reply failed", message.slice(0, 200));
+    return /^(429|503)\b|high demand|RESOURCE_EXHAUSTED|UNAVAILABLE/.test(message) ? "busy" : null;
+  }
+}

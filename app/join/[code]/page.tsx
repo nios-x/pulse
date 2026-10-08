@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, eq, sql } from "drizzle-orm";
-import { HeartPulseIcon } from "lucide-react";
+import { TicketIcon, UsersRoundIcon } from "lucide-react";
 import { db } from "@/db";
 import { invites, memberships, patients, users } from "@/db/schema";
 import { AcceptInviteForm } from "@/components/profile/accept-invite-form";
+import { SplashFrame } from "@/components/shapes/splash-frame";
 import { LanguageSwitch } from "@/components/shell/language-switch";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import { getT } from "@/lib/i18n-server";
 import { inviteCodeSchema } from "@/lib/validators";
@@ -19,7 +19,11 @@ export default async function JoinPage({ params }: PageProps<"/join/[code]">) {
   const code = parsed.success ? parsed.data : rawCode;
 
   const user = await getCurrentUser();
-  if (!user) redirect(`/auth?next=/join/${encodeURIComponent(code)}&tab=signup`);
+  // No account yet: sign up (or in) first; the invite rides along.
+  if (!user) {
+    const c = encodeURIComponent(code);
+    redirect(`/auth?invite=${c}&next=/join/${c}`);
+  }
 
   const { t } = await getT();
   const [invite] = parsed.success
@@ -49,55 +53,55 @@ export default async function JoinPage({ params }: PageProps<"/join/[code]">) {
     : [];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 px-4 py-8">
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-        <HeartPulseIcon className="size-7" aria-hidden />
-      </span>
-
+    <SplashFrame
+      brand={t("app.name")}
+      badge={valid && !membership ? <UsersRoundIcon aria-hidden /> : <TicketIcon aria-hidden />}
+    >
       {!invite || !valid ? (
-        <section className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">{t("join.invalidTitle")}</h1>
-          <p className="text-lg text-muted-foreground">{t("join.error.invalid")}</p>
-          <Link href="/home" className={buttonVariants({ size: "touch", variant: "outline" })}>
+        <section className="flex flex-col gap-4 text-center">
+          <h1 className="text-[1.75rem] leading-tight">{t("join.invalidTitle")}</h1>
+          <p className="text-lg text-ink-2">{t("join.error.invalid")}</p>
+          <Link href="/home" className={buttonVariants({ size: "xl", variant: "outline", className: "mt-4" })}>
             {t("forbidden.home")}
           </Link>
         </section>
       ) : membership ? (
-        <section className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">{t("join.error.already")}</h1>
+        <section className="flex flex-col gap-6 text-center">
+          <h1 className="text-[1.75rem] leading-tight">{t("join.error.already")}</h1>
           <Link href={`/home?p=${invite.patientId}`} className={buttonVariants({ size: "xl" })}>
             {t("join.open", { name: invite.patientName })}
           </Link>
         </section>
       ) : (
-        <section className="flex flex-col gap-5">
-          <div>
-            <p className="text-lg text-muted-foreground">
+        <section className="flex flex-1 flex-col gap-6">
+          <div className="text-center">
+            <p className="text-base text-ink-2">
               {t("join.invitedBy", { name: invite.inviterName ?? t("app.name") })}
             </p>
-            <h1 className="mt-1 text-3xl font-bold">
+            <h1 className="mt-1 text-[1.75rem] leading-tight">
               {invite.role === "owner"
                 ? t("join.asOwner")
                 : t("join.careTeam", { name: invite.patientName })}
             </h1>
           </div>
-          <Card>
-            <CardContent className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Badge className="h-7 px-3 text-sm">{t(`role.${invite.role}`)}</Badge>
+          <div className="rounded-2xl bg-violet-wash/70 p-4">
+            <Badge className="h-8 px-3.5 font-heading text-sm font-semibold">{t(`role.${invite.role}`)}</Badge>
+            <p className="mt-3 text-base text-plum">{t(`role.${invite.role}.about`)}</p>
+            {invite.role !== "owner" && invite.scopes.length > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-sm text-ink-3">{t("join.canSee")}:</span>
+                {invite.scopes.map((s) => (
+                  <Badge key={s} variant="outline">
+                    {t(`scope.${s}`)}
+                  </Badge>
+                ))}
               </div>
-              <p className="text-base">{t(`role.${invite.role}.about`)}</p>
-              {invite.role !== "owner" && invite.scopes.length > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("join.canSee")}: {invite.scopes.map((s) => t(`scope.${s}`)).join(", ")}
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
-          <LanguageSwitch />
+            ) : null}
+          </div>
           <AcceptInviteForm code={code} />
+          <LanguageSwitch className="mt-auto pt-4" />
         </section>
       )}
-    </main>
+    </SplashFrame>
   );
 }

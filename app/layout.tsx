@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Mukta } from "next/font/google";
+import { Mukta, Poppins } from "next/font/google";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { getLocale } from "@/lib/i18n-server";
@@ -10,6 +10,13 @@ const mukta = Mukta({
   variable: "--font-mukta",
   subsets: ["devanagari", "latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+// Poppins is the geometric display voice (headings, numbers, buttons); it ships Devanagari too.
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["devanagari", "latin"],
+  weight: ["500", "600", "700"],
 });
 
 // Every screen depends on the language cookie and the signed-in user,
@@ -30,13 +37,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1b6f73",
+  themeColor: "#7b3ff2",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${mukta.variable} h-full antialiased`}>
+    <html lang={locale} className={`${mukta.variable} ${poppins.variable} h-full antialiased`}>
       <body className="min-h-full bg-background text-base">
         <I18nProvider locale={locale}>{children}</I18nProvider>
         <ServiceWorkerRegister />

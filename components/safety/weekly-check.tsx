@@ -55,7 +55,7 @@ export function WeeklyCheck({
         }}
       >
         <div>
-          <h1 className="text-2xl font-semibold">{s("mood_title")}</h1>
+          <h1 className="text-[2rem] leading-tight">{s("mood_title")}</h1>
           <p className="mt-1 text-muted-foreground">{s("mood_intro")}</p>
         </div>
         {(["q1", "q2"] as const).map((q) => (
@@ -71,7 +71,7 @@ export function WeeklyCheck({
                   onChange={() => setAnswers((a) => ({ ...a, [q]: value }))}
                   className="peer sr-only"
                 />
-                <span className="flex min-h-12 cursor-pointer items-center rounded-xl border bg-card px-4 text-base peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50">
+                <span className="flex min-h-12 cursor-pointer items-center sheet rounded-xl px-4 text-base peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50">
                   {s(key)}
                 </span>
               </label>
@@ -109,7 +109,7 @@ export function WeeklyCheck({
   if (step.name === "ok") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <SunIcon className="size-12 text-chart-2" aria-hidden />
+        <SunIcon className="size-12 text-watch" aria-hidden />
         <p className="text-xl">{s("mood_ok")}</p>
         <Link href={`/home?p=${patientId}`} className={buttonVariants({ size: "xl" })}>
           {t("forbidden.home")}

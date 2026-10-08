@@ -22,7 +22,7 @@ import {
 
 export type GlucoseState = FormState & {
   alert?: SafetyResult & { mgdl: number };
-  contacts?: { name: string; phone: string }[];
+  contacts?: { name: string; phone: string; doctor: boolean }[];
 };
 
 export async function logGlucoseAction(_prev: GlucoseState, formData: FormData): Promise<GlucoseState> {
@@ -43,7 +43,10 @@ export async function logGlucoseAction(_prev: GlucoseState, formData: FormData):
   let contacts: GlucoseState["contacts"];
   if (result) {
     await createAlert({ patientId, loggedBy: user.id, ...result, sourceId: reading.id });
-    contacts = (await callableMembers(patientId, user.id)).map((m) => ({ name: m.name, phone: m.phone! }));
+    // The doctor first: the safety messages say "call your doctor".
+    contacts = (await callableMembers(patientId, user.id))
+      .map((m) => ({ name: m.name, phone: m.phone!, doctor: m.role === "doctor" }))
+      .sort((a, b) => Number(b.doctor) - Number(a.doctor));
   }
   refresh();
   return {
@@ -111,21 +114,21 @@ export async function analyzeMealPhotoAction(input: { patientId: string; image: 
   return { ok: true, items: detection.items, keys: keysFromDetection(detection.items) };
 }
 
-/** One tap saves: "walked today" or the sleep face. Upserts today's row. */
+/** Saves today's step count or last night's hours of sleep. Upserts today's row; `walked` follows the steps. */
 export async function saveCheckinAction(input: {
   patientId: string;
-  walked?: boolean;
-  sleep?: 1 | 2 | 3;
+  steps?: number;
+  sleepMinutes?: number;
 }): Promise<{ ok: boolean }> {
   const parsed = checkinSchema.safeParse(input);
   if (!parsed.success) return { ok: false };
-  const { patientId, walked, sleep } = parsed.data;
+  const { patientId, steps, sleepMinutes } = parsed.data;
   const { user } = await requirePermission(patientId, "log_checkin");
 
   const date = istDate(new Date());
   const patch = {
-    ...(walked !== undefined ? { walked } : {}),
-    ...(sleep !== undefined ? { sleep } : {}),
+    ...(steps !== undefined ? { steps, walked: steps > 0 } : {}),
+    ...(sleepMinutes !== undefined ? { sleepMinutes } : {}),
   };
   await db
     .insert(dailyCheckins)

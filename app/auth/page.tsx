@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import { HeartPulseIcon } from "lucide-react";
 import { AuthForms } from "@/components/auth/auth-forms";
+import { FormMessage } from "@/components/form/text-field";
+import { JoinCodeForm } from "@/components/profile/join-code-form";
+import { SplashFrame } from "@/components/shapes/splash-frame";
 import { LanguageSwitch } from "@/components/shell/language-switch";
 import { getCurrentUser } from "@/lib/auth";
 import { getT } from "@/lib/i18n-server";
-import { nextPathSchema } from "@/lib/validators";
+import { findActiveInvite } from "@/lib/join";
+import { inviteCodeSchema, nextPathSchema } from "@/lib/validators";
 
 export default async function AuthPage({ searchParams }: PageProps<"/auth">) {
   const params = await searchParams;

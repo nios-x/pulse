@@ -8,7 +8,8 @@ import { RevokeInviteButton } from "@/components/family/revoke-invite-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getT } from "@/lib/i18n-server";
-import { requirePermission } from "@/lib/permissions";
+import { canCallBetween, requirePermission } from "@/lib/permissions";
+import { Blob } from "@/components/shapes/shapes";
 import { cn } from "@/lib/utils";
 
 export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/family">) {
@@ -24,6 +25,7 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
       userId: users.id,
       name: users.name,
       phone: users.phone,
+      clinic: users.clinic,
       role: memberships.role,
       scopes: memberships.scopes,
     })
@@ -40,25 +42,25 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
         .orderBy(asc(invites.createdAt))
     : [];
 
-  const roleBadge = { owner: "default", caregiver: "secondary", family: "outline" } as const;
+  const roleBadge = { owner: "default", caregiver: "secondary", family: "outline", doctor: "secondary" } as const;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">{t("page.family")}</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="text-[2rem] leading-tight">{t("page.family")}</h1>
+        <p className="mt-1 text-base text-ink-2">
           {canManage ? t("family.subtitleManage") : t("family.subtitleView")}
         </p>
       </div>
 
       {!ctx.patientHasOwner ? (
-        <p className="rounded-xl bg-warning/25 px-4 py-3 text-base text-warning-foreground">
+        <p className="rounded-2xl bg-watch-wash px-4 py-3 text-base font-medium text-watch-ink">
           {t("family.notJoined", { name: patient.name })}
         </p>
       ) : null}
 
       <section aria-labelledby="members-heading" className="flex flex-col gap-3">
-        <h2 id="members-heading" className="text-lg font-semibold">
+        <h2 id="members-heading" className="text-xl font-semibold">
           {t("family.members")}
         </h2>
         {members.map((m) => {
@@ -67,22 +69,31 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
             <Card key={m.membershipId} size="sm">
               <CardContent className="flex flex-col gap-2">
                 <div className="flex items-center gap-3">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-semibold",
-                      m.role === "owner" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-                    )}
-                  >
-                    {m.name.slice(0, 1).toUpperCase()}
+                  <span aria-hidden className="relative flex size-12 shrink-0 items-center justify-center">
+                    <Blob
+                      seed={m.name.length * 3 + 1}
+                      wobble={0.14}
+                      className={cn("absolute inset-0 size-full", m.role === "owner" ? "text-violet" : m.role === "doctor" ? "text-go" : "text-lilac")}
+                    />
+                    <span
+                      className={cn(
+                        "relative font-heading text-lg font-bold",
+                        m.role === "owner" || m.role === "doctor" ? "text-white" : "text-violet-deep"
+                      )}
+                    >
+                      {m.name.slice(0, 1).toUpperCase()}
+                    </span>
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-semibold">
+                    <p className="truncate font-heading text-base font-semibold text-plum">
                       {m.name}
                       {m.userId === user.id ? (
                         <span className="font-normal text-muted-foreground"> · {t("family.you")}</span>
                       ) : null}
                     </p>
+                    {m.role === "doctor" && m.clinic ? (
+                      <p className="truncate text-sm text-ink-2">{m.clinic}</p>
+                    ) : null}
                     {m.role !== "owner" && !editable ? (
                       <p className="text-sm text-muted-foreground">
                         {m.scopes.length
@@ -95,7 +106,8 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
                     {t(`role.${m.role}`)}
                   </Badge>
                 </div>
-                {permissions.start_call && m.userId !== user.id ? (
+                {/* In-app calls only connect the family with their doctor. */}
+                {permissions.start_call && m.userId !== user.id && canCallBetween(membership.role, m.role) ? (
                   <div className="flex justify-end">
                     <CallButtons patientId={patientId} userId={m.userId} name={m.name} />
                   </div>
@@ -105,7 +117,7 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
                     patientId={patientId}
                     membershipId={m.membershipId}
                     name={m.name}
-                    role={m.role as "caregiver" | "family"}
+                    role={m.role as "caregiver" | "family" | "doctor"}
                     scopes={m.scopes}
                     canToggleMood={isOwner}
                   />
@@ -134,13 +146,13 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
 
       {pending.length ? (
         <section aria-labelledby="pending-heading" className="flex flex-col gap-2">
-          <h2 id="pending-heading" className="text-lg font-semibold">
+          <h2 id="pending-heading" className="text-xl font-semibold">
             {t("invite.pending")}
           </h2>
-          <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          <ul className="flex flex-col divide-y divide-edge sheet rounded-xl">
             {pending.map((inv) => (
-              <li key={inv.id} className="flex items-center gap-3 px-4 py-2">
-                <span className="font-mono text-lg font-semibold tracking-widest">{inv.code}</span>
+              <li key={inv.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="font-heading text-lg font-bold tracking-[0.25em] text-violet-deep">{inv.code}</span>
                 <span className="flex-1 text-sm text-muted-foreground">{t(`role.${inv.role}`)}</span>
                 <RevokeInviteButton patientId={patientId} inviteId={inv.id} />
               </li>

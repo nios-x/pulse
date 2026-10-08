@@ -25,6 +25,7 @@ export const DEMO_PEOPLE = {
   ramesh: { name: "Ramesh Sharma", email: "ramesh@pulse.demo", phone: "9800000001" },
   rahul: { name: "Rahul Sharma", email: "rahul@pulse.demo", phone: "9800000002" },
   maa: { name: "Sunita Sharma", email: "maa@pulse.demo", phone: "9800000003" },
+  doctor: { name: "Dr. Anjali Verma", email: "doctor@pulse.demo", phone: "9800000004", isDoctor: true, clinic: "Verma Diabetes Clinic, Kanpur" },
 } as const;
 
 /** Small deterministic random generator, so every seed run looks the same. */
@@ -69,12 +70,13 @@ export async function resetDemoFamily() {
 
 export async function createDemoFamily(startDate: string) {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
-  const [ramesh, rahul, maa] = await db
+  const [ramesh, rahul, maa, doctor] = await db
     .insert(users)
     .values([
       { ...DEMO_PEOPLE.ramesh, passwordHash },
       { ...DEMO_PEOPLE.rahul, passwordHash },
       { ...DEMO_PEOPLE.maa, passwordHash },
+      { ...DEMO_PEOPLE.doctor, passwordHash },
     ])
     .returning();
 
@@ -89,6 +91,7 @@ export async function createDemoFamily(startDate: string) {
     { patientId: patient.id, userId: ramesh.id, role: "owner", scopes: all },
     { patientId: patient.id, userId: rahul.id, role: "caregiver", scopes: ["vitals", "meds", "meals"] },
     { patientId: patient.id, userId: maa.id, role: "family", scopes: ["meals"] },
+    { patientId: patient.id, userId: doctor.id, role: "doctor", scopes: ["vitals", "meds", "meals"] },
   ]);
 
   const meds = await db
@@ -100,7 +103,7 @@ export async function createDemoFamily(startDate: string) {
     ])
     .returning();
 
-  return { ramesh, rahul, maa, patient, meds };
+  return { ramesh, rahul, maa, doctor, patient, meds };
 }
 
 type Family = Awaited<ReturnType<typeof createDemoFamily>>;
@@ -195,7 +198,8 @@ export async function fillDays(
         loggedBy: ramesh.id,
         date,
         walked: plan.walked,
-        sleep: rand.pick([2, 3, 3, 2, 1]),
+        steps: plan.walked ? rand.int(3500, 8500) : 0,
+        sleepMinutes: rand.pick([330, 360, 390, 420, 450, 480]),
       });
     }
 

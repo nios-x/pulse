@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { memberships, patients, type Role, type Scope } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 
-export const ROLES = ["owner", "caregiver", "family"] as const satisfies readonly Role[];
+export const ROLES = ["owner", "caregiver", "family", "doctor"] as const satisfies readonly Role[];
 export const SCOPES = ["vitals", "meds", "meals", "mood"] as const satisfies readonly Scope[];
 
 export const PERMISSIONS = [
@@ -27,7 +27,9 @@ export const PERMISSIONS = [
   "manage_members", // invite, remove, change roles
   "create_share_link",
   "delete_patient",
-  "start_call", // family calls (phase 11)
+  "start_call", // in-app calls, only ever between a doctor and the family (see canCallBetween)
+  "book_call", // ask the doctor for a call at a set time
+  "answer_booking", // the doctor accepts or declines a booked call
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -36,7 +38,7 @@ export type PermissionContext = { patientHasOwner: boolean };
 
 /** What each role may do at all. Copied from the "Family roles and permissions" table. */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  owner: PERMISSIONS,
+  owner: PERMISSIONS.filter((p) => p !== "answer_booking"),
   caregiver: [
     "view_summary",
     "view_vitals",
@@ -55,6 +57,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "manage_members",
     "create_share_link",
     "start_call",
+    "book_call",
   ],
   family: [
     "view_summary",
@@ -67,7 +70,18 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "receive_alerts",
     "start_call",
   ],
+  // A doctor joins by invite and only reads what the patient shares, answers booked
+  // calls and calls the family. Never writes to the profile or manages the family.
+  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "start_call", "answer_booking"],
 };
+
+/**
+ * In-app calls connect the family with their doctor, never family members with
+ * each other: exactly one side of a call must be the doctor.
+ */
+export function canCallBetween(callerRole: Role, calleeRole: Role): boolean {
+  return (callerRole === "doctor") !== (calleeRole === "doctor");
+}
 
 /** Scopes a non-owner member must hold for a permission. The owner is never limited by scopes. */
 export const PERMISSION_SCOPE: Partial<Record<Permission, readonly Scope[]>> = {
@@ -113,10 +127,15 @@ export function permissionMap(
   return Object.fromEntries(PERMISSIONS.map((p) => [p, can(membership, p, ctx)])) as PermissionMap;
 }
 
+/** Whether the Log screen has anything for this member (doctors only read). */
+export function canLog(map: PermissionMap): boolean {
+  return map.log_glucose || map.log_meals || map.log_checkin;
+}
+
 /** Default scopes offered when inviting someone with this role. Mood is always off. */
 export function defaultScopes(role: Role): Scope[] {
   if (role === "owner") return [...SCOPES];
-  if (role === "caregiver") return ["vitals", "meds", "meals"];
+  if (role === "caregiver" || role === "doctor") return ["vitals", "meds", "meals"];
   return ["meals"];
 }
 

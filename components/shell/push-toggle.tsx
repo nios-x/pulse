@@ -71,11 +71,13 @@ export function PushToggle() {
 
   if (state === "unsupported" || state === "loading") return null;
   return (
-    <label className="flex min-h-12 items-center gap-3 rounded-lg px-3 text-base">
-      <BellRingIcon className="size-5 text-muted-foreground" aria-hidden />
+    <label className="flex min-h-13 items-center gap-3.5 rounded-xl px-3 text-base font-medium text-plum">
+      <span className="flex size-9 items-center justify-center rounded-lg bg-mint-wash text-go">
+        <BellRingIcon className="size-5" aria-hidden />
+      </span>
       <span className="flex flex-1 flex-col">
         {t("push.toggle")}
-        {state === "denied" ? <span className="text-sm text-muted-foreground">{t("push.denied")}</span> : null}
+        {state === "denied" ? <span className="text-sm font-normal text-ink-3">{t("push.denied")}</span> : null}
       </span>
       <Switch
         checked={state === "on"}

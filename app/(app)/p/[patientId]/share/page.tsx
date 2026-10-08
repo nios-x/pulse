@@ -41,7 +41,7 @@ export default async function SharePage({ params, searchParams }: PageProps<"/p/
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold">{t("share.title")}</h1>
+        <h1 className="text-[2rem] leading-tight">{t("share.title")}</h1>
         <p className="mt-1 text-muted-foreground">{t("share.subtitle", { name: patient.name })}</p>
       </div>
 
@@ -83,10 +83,10 @@ export default async function SharePage({ params, searchParams }: PageProps<"/p/
 
       {links.length ? (
         <section aria-labelledby="links-heading" className="flex flex-col gap-2">
-          <h2 id="links-heading" className="text-lg font-semibold">
+          <h2 id="links-heading" className="text-xl font-semibold">
             {t("share.active")}
           </h2>
-          <ul className="flex flex-col divide-y rounded-xl border bg-card">
+          <ul className="flex flex-col divide-y divide-edge sheet rounded-xl">
             {links.map((l) => (
               <li key={l.id} className="flex items-center gap-3 px-4 py-2">
                 <div className="min-w-0 flex-1">

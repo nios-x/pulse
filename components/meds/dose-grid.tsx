@@ -46,11 +46,11 @@ export async function DoseGrid({
                 <span
                   title={status[cell.status]}
                   className={cn(
-                    "mx-auto flex aspect-square w-full max-w-9 items-center justify-center rounded-md",
-                    cell.status === "taken" && "bg-success text-success-foreground",
-                    cell.status === "missed" && "bg-destructive/15 text-destructive",
-                    cell.status === "due" && "border-2 border-warning bg-warning/20",
-                    cell.status === "upcoming" && "border border-dashed border-input",
+                    "mx-auto flex aspect-square w-full max-w-9 items-center justify-center rounded-full",
+                    cell.status === "taken" && "bg-go text-white",
+                    cell.status === "missed" && "bg-alert-wash text-alert-ink",
+                    cell.status === "due" && "border-2 border-watch bg-watch-wash",
+                    cell.status === "upcoming" && "border-2 border-dashed border-edge-strong",
                     cell.status === "none" && "bg-transparent"
                   )}
                 >

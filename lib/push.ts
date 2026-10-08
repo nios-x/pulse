@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { pushSubscriptions } from "@/db/schema";
 
@@ -38,4 +38,17 @@ export async function sendPush(
     console.error("push failed", status ?? err);
     return "failed";
   }
+}
+
+/** Pushes to every phone of these users, each in the language they subscribed with. */
+export async function pushToUsers(
+  userIds: string[],
+  build: (locale: "en" | "hi") => PushPayload
+): Promise<void> {
+  if (userIds.length === 0 || !configure()) return;
+  const subs = await db
+    .select({ endpoint: pushSubscriptions.endpoint, keys: pushSubscriptions.keys, locale: pushSubscriptions.locale })
+    .from(pushSubscriptions)
+    .where(inArray(pushSubscriptions.userId, userIds));
+  await Promise.all(subs.map((s) => sendPush(s, build(s.locale === "hi" ? "hi" : "en"))));
 }

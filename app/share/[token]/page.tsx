@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-xl border bg-card px-3 py-2 print:py-1.5">
+    <div className="sheet rounded-xl px-3 py-2 print:py-1.5">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-2xl font-bold tabular-nums print:text-xl">{value}</p>
       {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
@@ -39,7 +39,7 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-start justify-center gap-3 px-4">
         <LinkIcon className="size-10 text-muted-foreground" aria-hidden />
-        <h1 className="text-2xl font-semibold">{t("share.inactive")}</h1>
+        <h1 className="text-[2rem] leading-tight">{t("share.inactive")}</h1>
         <p className="text-muted-foreground">{t("share.inactiveBody")}</p>
       </main>
     );
@@ -100,7 +100,7 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
         />
       </section>
 
-      <section aria-labelledby="chart-h" className="rounded-xl border bg-card p-3 print:break-inside-avoid">
+      <section aria-labelledby="chart-h" className="sheet rounded-xl p-3 print:break-inside-avoid">
         <h2 id="chart-h" className="mb-1 font-semibold">
           {t("doctor.chartTitle", { days: SUMMARY_DAYS })}
         </h2>
@@ -116,7 +116,7 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
       </section>
 
       <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
-        <section aria-labelledby="hba1c-h" className="rounded-xl border bg-card p-3">
+        <section aria-labelledby="hba1c-h" className="sheet rounded-xl p-3">
           <h2 id="hba1c-h" className="mb-1 font-semibold">
             HbA1c
           </h2>
@@ -134,7 +134,7 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
           )}
         </section>
 
-        <section aria-labelledby="ins-h" className="rounded-xl border bg-card p-3">
+        <section aria-labelledby="ins-h" className="sheet rounded-xl p-3">
           <h2 id="ins-h" className="mb-1 font-semibold">
             {t("doctor.patterns")}
           </h2>
@@ -151,7 +151,7 @@ export default async function DoctorSummaryPage({ params }: PageProps<"/share/[t
       </div>
 
       {summary.link.includeMood ? (
-        <section aria-labelledby="mood-h" className="rounded-xl border bg-card p-3">
+        <section aria-labelledby="mood-h" className="sheet rounded-xl p-3">
           <h2 id="mood-h" className="mb-1 font-semibold">
             {t("doctor.moodTitle")}
           </h2>

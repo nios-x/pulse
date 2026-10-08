@@ -14,6 +14,7 @@ const DEFAULT_SCOPES: Record<Role, Scope[]> = {
   owner: ["vitals", "meds", "meals", "mood"],
   caregiver: ["vitals", "meds", "meals"],
   family: ["meals"],
+  doctor: ["vitals", "meds", "meals"],
 };
 
 export function InviteForm({
@@ -51,12 +52,13 @@ export function InviteForm({
           name="role"
           legend={t("invite.who")}
           defaultValue={role}
-          columns={allowOwner ? 3 : 2}
+          columns={2}
           chipClassName="justify-center text-center"
           options={[
             ...(allowOwner ? [{ value: "owner", label: t("invite.asPatient", { name: patientName }) }] : []),
             { value: "caregiver", label: t("role.caregiver") },
             { value: "family", label: t("role.family") },
+            { value: "doctor", label: t("role.doctor") },
           ]}
         />
         {role === "owner" ? (

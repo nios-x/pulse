@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { auditLog } from "@/db/schema";
 
 export type AuditAction =
+  | "doctor_signed_up"
   | "patient_created"
   | "invite_created"
   | "invite_revoked"
@@ -22,7 +23,7 @@ type Executor = Pick<typeof db, "insert">;
 export async function audit(
   entry: {
     actorUserId: string;
-    patientId: string;
+    patientId: string | null;
     action: AuditAction;
     detail?: Record<string, unknown>;
   },

@@ -4,9 +4,11 @@ import { useState, useActionState } from "react";
 import { ArrowLeftIcon } from "lucide-react";
 import { resetPasswordAction, signInAction, signUpAction } from "@/app/auth/actions";
 import { useT } from "@/components/i18n-provider";
+import { ChoiceChips } from "@/components/form/choice-chips";
 import { FormMessage, TextField } from "@/components/form/text-field";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Role } from "@/db/schema";
 import type { MessageKey } from "@/lib/i18n";
 import type { FormState } from "@/lib/validators";
 
@@ -107,11 +109,11 @@ export function AuthForms({
   return (
     <Tabs defaultValue={defaultTab === "signup" ? "signup" : "signin"} className="gap-5">
       <TabsList className="h-12! w-full">
-        <TabsTrigger value="signin" className="text-base">
-          {t("auth.signIn")}
-        </TabsTrigger>
         <TabsTrigger value="signup" className="text-base">
           {t("auth.createAccount")}
+        </TabsTrigger>
+        <TabsTrigger value="signin" className="text-base">
+          {t("auth.signIn")}
         </TabsTrigger>
       </TabsList>
 
@@ -153,9 +155,32 @@ export function AuthForms({
       </TabsContent>
 
       <TabsContent value="signup">
-        <form action={signUpFormAction} className="flex flex-col gap-4" noValidate>
+        <form action={signUpFormAction} className="group/signup flex flex-col gap-4" noValidate>
           <input type="hidden" name="next" value={next} />
+          {inviteCode ? <input type="hidden" name="code" value={inviteCode} /> : null}
           <FormMessage>{err(signUp.error)}</FormMessage>
+          {inviteCode ? null : (
+            <ChoiceChips
+              name="accountType"
+              legend={t("auth.accountType")}
+              defaultValue={signUp.values?.accountType === "doctor" ? "doctor" : "family"}
+              columns={2}
+              options={[
+                {
+                  value: "family",
+                  icon: <HeartHandshakeIcon className="size-5" aria-hidden />,
+                  label: t("auth.accountType.family"),
+                  description: t("auth.accountType.familyHint"),
+                },
+                {
+                  value: "doctor",
+                  icon: <StethoscopeIcon className="size-5" aria-hidden />,
+                  label: t("auth.accountType.doctor"),
+                  description: t("auth.accountType.doctorHint"),
+                },
+              ]}
+            />
+          )}
           <TextField
             name="name"
             autoComplete="name"
@@ -194,6 +219,12 @@ export function AuthForms({
             defaultValue={signUp.values?.phone}
             error={err(signUp.fieldErrors?.phone)}
           />
+          {inviteRole === "doctor" ? (
+            clinicField
+          ) : inviteCode ? null : (
+            // Shown only while "Doctor" is picked; CSS, so it works before JavaScript loads.
+            <div className="hidden group-has-[input[value=doctor]:checked]/signup:block">{clinicField}</div>
+          )}
           <Button type="submit" size="xl" disabled={signUpPending} className="mt-2">
             {signUpPending ? t("common.wait") : t("auth.createAccount")}
           </Button>

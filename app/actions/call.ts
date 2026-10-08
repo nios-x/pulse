@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { callLogs, memberships } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { requirePermission } from "@/lib/permissions";
+import { canCallBetween, requirePermission } from "@/lib/permissions";
 import { nowSeconds, signToken } from "@/lib/signaling";
 import { callEndSchema, callStartSchema, callTicketSchema } from "@/lib/validators";
 
@@ -17,20 +17,23 @@ export async function getSignalingToken() {
 }
 
 /**
- * A 60-second ticket to call one person. Both users must be members of this
- * patient's family, so calling someone outside the family fails here.
+ * A 60-second ticket to call one person. Both users must be in this patient's
+ * care team and exactly one of them must be the doctor, so calls outside the
+ * team, or between family members, fail here.
  */
 export async function getCallTicket(input: { patientId: string; targetUserId: string }) {
   const parsed = callTicketSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "call.error.notFamily" as const };
   const { patientId, targetUserId } = parsed.data;
-  const { user } = await requirePermission(patientId, "start_call");
+  const { user, membership } = await requirePermission(patientId, "start_call");
   const [target] = await db
-    .select({ id: memberships.id })
+    .select({ id: memberships.id, role: memberships.role })
     .from(memberships)
     .where(and(eq(memberships.patientId, patientId), eq(memberships.userId, targetUserId)))
     .limit(1);
   if (!target || targetUserId === user.id) return { ok: false as const, error: "call.error.notFamily" as const };
+  // Calls are only between the doctor and the patient or family, never family to family.
+  if (!canCallBetween(membership.role, target.role)) return { ok: false as const, error: "call.error.doctorOnly" as const };
   return {
     ok: true as const,
     ticket: signToken({ from: user.id, to: targetUserId, patientId, exp: nowSeconds() + 60 }),

@@ -21,6 +21,10 @@ Demo accounts (password `demo1234`), all synthetic:
 | Rahul Sharma (son) | rahul@pulse.demo | Caregiver |
 | Sunita Sharma (Maa) | maa@pulse.demo | Family |
 
+## Meal photos (Gemini)
+
+On the Log page, **Take a photo of the meal** opens the camera (or the gallery). The photo is shrunk on the phone to at most 1024 px and sent to Gemini (`gemini-3.8-flash`, Interactions API, inline image), which names each dish, its portion and carb level as JSON checked against `foodDetectionSchema`. Matching foods from `lib/foods.ts` are ticked; the person checks them and taps Save. The dish names are saved in `meals.details` for the timeline; the photo itself is not stored. Set `GEMINI_API_KEY` to turn it on; without it only the food chips show.
+
 ## Push reminders (phase 10)
 
 `.env` needs VAPID keys (`npx web-push generate-vapid-keys`) and a `CRON_SECRET`. Each user turns on **Medicine reminders** in the menu. Then call the reminder job every 15 minutes from Vercel Cron or any scheduler:

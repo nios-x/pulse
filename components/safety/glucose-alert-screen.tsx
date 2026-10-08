@@ -14,7 +14,7 @@ export function GlucoseAlertScreen({
   onClose,
 }: {
   alert: SafetyResult & { mgdl: number };
-  contacts: { name: string; phone: string }[];
+  contacts: { name: string; phone: string; doctor: boolean }[];
   onClose: () => void;
 }) {
   const t = useT();
@@ -63,7 +63,7 @@ export function GlucoseAlertScreen({
               })}
             >
               <PhoneIcon aria-hidden />
-              {t("alert.call", { name: c.name })}
+              {c.doctor ? t("alert.callDoctor", { name: c.name }) : t("alert.call", { name: c.name })}
             </a>
           ))}
           <Button

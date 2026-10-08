@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({ forbidden: vi.fn() }));
 import type { Role, Scope } from "@/db/schema";
 import {
   can,
+  canCallBetween,
   defaultScopes,
   PERMISSIONS,
   permissionMap,
@@ -21,25 +22,27 @@ import {
 // "until_owner" = only until the patient joins as owner.
 type Cell = boolean | readonly Scope[] | "until_owner";
 const TABLE: Record<Permission, Record<Role, Cell>> = {
-  view_summary: { owner: true, caregiver: true, family: true },
-  view_vitals: { owner: true, caregiver: ["vitals"], family: ["vitals"] },
-  view_meals: { owner: true, caregiver: ["meals"], family: ["meals"] },
-  view_meds: { owner: true, caregiver: ["meds"], family: ["meds"] },
-  log_glucose: { owner: true, caregiver: true, family: false },
-  manage_meds: { owner: true, caregiver: true, family: false },
-  mark_dose: { owner: true, caregiver: true, family: true },
-  log_meals: { owner: true, caregiver: true, family: true },
-  log_checkin: { owner: true, caregiver: true, family: true },
-  log_labs: { owner: true, caregiver: true, family: false },
-  edit_patient: { owner: true, caregiver: true, family: false },
-  view_mood: { owner: true, caregiver: ["mood"], family: false },
-  answer_mood: { owner: true, caregiver: false, family: false },
-  view_insights: { owner: true, caregiver: ["vitals", "meals"], family: false },
-  receive_alerts: { owner: true, caregiver: true, family: ["vitals"] },
-  manage_members: { owner: true, caregiver: "until_owner", family: false },
-  create_share_link: { owner: true, caregiver: true, family: false },
-  delete_patient: { owner: true, caregiver: false, family: false },
-  start_call: { owner: true, caregiver: true, family: true },
+  view_summary: { owner: true, caregiver: true, family: true, doctor: true },
+  view_vitals: { owner: true, caregiver: ["vitals"], family: ["vitals"], doctor: ["vitals"] },
+  view_meals: { owner: true, caregiver: ["meals"], family: ["meals"], doctor: ["meals"] },
+  view_meds: { owner: true, caregiver: ["meds"], family: ["meds"], doctor: ["meds"] },
+  log_glucose: { owner: true, caregiver: true, family: false, doctor: false },
+  manage_meds: { owner: true, caregiver: true, family: false, doctor: false },
+  mark_dose: { owner: true, caregiver: true, family: true, doctor: false },
+  log_meals: { owner: true, caregiver: true, family: true, doctor: false },
+  log_checkin: { owner: true, caregiver: true, family: true, doctor: false },
+  log_labs: { owner: true, caregiver: true, family: false, doctor: false },
+  edit_patient: { owner: true, caregiver: true, family: false, doctor: false },
+  view_mood: { owner: true, caregiver: ["mood"], family: false, doctor: ["mood"] },
+  answer_mood: { owner: true, caregiver: false, family: false, doctor: false },
+  view_insights: { owner: true, caregiver: ["vitals", "meals"], family: false, doctor: ["vitals", "meals"] },
+  receive_alerts: { owner: true, caregiver: true, family: ["vitals"], doctor: false },
+  manage_members: { owner: true, caregiver: "until_owner", family: false, doctor: false },
+  create_share_link: { owner: true, caregiver: true, family: false, doctor: false },
+  delete_patient: { owner: true, caregiver: false, family: false, doctor: false },
+  start_call: { owner: true, caregiver: true, family: true, doctor: true },
+  book_call: { owner: true, caregiver: true, family: false, doctor: false },
+  answer_booking: { owner: false, caregiver: false, family: false, doctor: true },
 };
 
 function expected(cell: Cell, scopes: readonly Scope[], patientHasOwner: boolean): boolean {
@@ -117,5 +120,48 @@ describe("journey rules", () => {
   it("permissionMap agrees with can()", () => {
     const map = permissionMap(maa, ctx);
     for (const p of PERMISSIONS) expect(map[p]).toBe(can(maa, p, ctx));
+  });
+});
+
+describe("doctor", () => {
+  const ctx = { patientHasOwner: true };
+  const doctor = { role: "doctor" as const, scopes: defaultScopes("doctor") };
+
+  it("reads shared data but never logs daily data, gets alerts or manages the family", () => {
+    expect(can(doctor, "view_vitals", ctx)).toBe(true);
+    expect(can(doctor, "view_insights", ctx)).toBe(true);
+    for (const p of ["log_glucose", "log_meals", "mark_dose", "manage_meds", "receive_alerts", "manage_members", "delete_patient"] as const) {
+      expect(can(doctor, p, ctx)).toBe(false);
+    }
+  });
+
+  it("only views, answers booked calls and calls; never writes to the profile", () => {
+    for (const p of ["view_summary", "view_meds", "view_meals", "answer_booking", "start_call"] as const) {
+      expect(can(doctor, p, ctx)).toBe(true);
+    }
+    for (const p of ["log_labs", "edit_patient", "log_checkin", "book_call", "create_share_link"] as const) {
+      expect(can(doctor, p, ctx)).toBe(false);
+    }
+  });
+
+  it("sees the weekly check only if the patient shares it", () => {
+    expect(can(doctor, "view_mood", ctx)).toBe(false);
+    expect(can({ ...doctor, scopes: [...doctor.scopes, "mood"] }, "view_mood", ctx)).toBe(true);
+  });
+});
+
+describe("canCallBetween: calls are only with the doctor", () => {
+  it("family and patient can call the doctor, and the doctor can call them", () => {
+    for (const role of ["owner", "caregiver", "family"] as const) {
+      expect(canCallBetween(role, "doctor")).toBe(true);
+      expect(canCallBetween("doctor", role)).toBe(true);
+    }
+  });
+
+  it("family members can't call each other, and doctors can't call doctors", () => {
+    for (const a of ["owner", "caregiver", "family"] as const) {
+      for (const b of ["owner", "caregiver", "family"] as const) expect(canCallBetween(a, b)).toBe(false);
+    }
+    expect(canCallBetween("doctor", "doctor")).toBe(false);
   });
 });

@@ -20,7 +20,7 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 
 // ---------- Enums ----------
 
-export const roleEnum = pgEnum("role", ["owner", "caregiver", "family"]);
+export const roleEnum = pgEnum("role", ["owner", "caregiver", "family", "doctor"]);
 export const scopeEnum = pgEnum("scope", ["vitals", "meds", "meals", "mood"]);
 export const glucoseContextEnum = pgEnum("glucose_context", ["fasting", "after_meal", "random"]);
 export const mealSlotEnum = pgEnum("meal_slot", ["breakfast", "lunch", "dinner", "snack"]);
@@ -40,6 +40,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(), // always stored lowercase
   passwordHash: text("password_hash").notNull(),
   phone: text("phone"), // optional, used for "Call Rahul" tel: links
+  // A doctor account serves families: no health profile of its own, joins each family by invite.
+  isDoctor: boolean("is_doctor").notNull().default(false),
+  clinic: text("clinic"), // doctor only, e.g. "Verma Diabetes Clinic, Kanpur"
   createdAt: createdAt(),
 });
 
@@ -189,8 +192,10 @@ export const dailyCheckins = pgTable(
     patientId: patientId(),
     loggedBy: loggedBy(),
     date: date("date", { mode: "string" }).notNull(),
-    walked: boolean("walked"),
-    sleep: smallint("sleep"), // 1 bad, 2 okay, 3 good
+    walked: boolean("walked"), // derived from steps on save (steps > 0)
+    steps: integer("steps"),
+    sleep: smallint("sleep"), // old 1 bad, 2 okay, 3 good rating; no longer written
+    sleepMinutes: smallint("sleep_minutes"), // time slept last night
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("daily_checkins_patient_date_uq").on(t.patientId, t.date)]
@@ -281,7 +286,7 @@ export const pushSubscriptions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     endpoint: text("endpoint").notNull().unique(),
     keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
-    locale: varchar("locale", { length: 2 }).notNull().default("hi"), // language for the notification text
+    locale: varchar("locale", { length: 2 }).notNull().default("en"), // language for the notification text
     createdAt: createdAt(),
   },
   (t) => [index("push_user_idx").on(t.userId)]

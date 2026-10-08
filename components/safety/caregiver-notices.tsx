@@ -42,8 +42,8 @@ export async function CaregiverNotices({ patient, now }: { patient: Patient; now
   return (
     <div className="flex flex-col gap-2">
       {missed ? (
-        <div role="status" className="flex flex-col gap-3 rounded-xl border border-warning bg-warning/20 p-4">
-          <p className="flex gap-2 text-base font-semibold">
+        <div role="status" className="flex flex-col gap-3 rounded-2xl bg-watch-wash text-watch-ink p-4">
+          <p className="flex gap-2.5 text-base font-semibold">
             <PillIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
             {safetyText("missed_doses", locale, { name: patient.name, count: missed.count })}
           </p>
@@ -51,8 +51,8 @@ export async function CaregiverNotices({ patient, now }: { patient: Patient; now
         </div>
       ) : null}
       {silent ? (
-        <div role="status" className="flex flex-col gap-3 rounded-xl border border-warning bg-warning/20 p-4">
-          <p className="flex gap-2 text-base font-semibold">
+        <div role="status" className="flex flex-col gap-3 rounded-2xl bg-watch-wash text-watch-ink p-4">
+          <p className="flex gap-2.5 text-base font-semibold">
             <ClockIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
             {safetyText("no_logs", locale, { name: patient.name, days: silent.days })}
           </p>

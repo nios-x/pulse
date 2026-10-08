@@ -31,3 +31,8 @@ export function formatSlot(slot: string, locale: Locale): string {
     minute: m ? "2-digit" : undefined,
   }).format(new Date(Date.UTC(2000, 0, 1, h, m)));
 }
+
+/** 390 minutes -> "6.5". Whole hours have no decimal. */
+export function formatHours(minutes: number): string {
+  return String(Math.round(minutes / 6) / 10);
+}

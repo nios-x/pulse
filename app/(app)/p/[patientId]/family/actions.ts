@@ -103,7 +103,8 @@ export async function updateMemberRoleAction(input: {
   const { patientId, membershipId, role } = parsed.data;
   const { user } = await requirePermission(patientId, "manage_members");
   const target = await loadTarget(patientId, membershipId, user.id);
-  if (!target) return { ok: false, error: "family.error.notAllowed" };
+  // A doctor stays a doctor; only family roles can be swapped.
+  if (!target || target.role === "doctor") return { ok: false, error: "family.error.notAllowed" };
   if (target.role === role) return { ok: true };
 
   await db.update(memberships).set({ role }).where(eq(memberships.id, target.id));
@@ -158,4 +159,10 @@ export async function removeMemberAction(input: { patientId: string; membershipI
   });
   refresh();
   return { ok: true };
+}
+
+/** "Make a new link" on the login page, when the patient's last invite expired. */
+export async function renewLoginInviteAction(formData: FormData) {
+  formData.set("role", "owner");
+  await createInviteAction({}, formData);
 }

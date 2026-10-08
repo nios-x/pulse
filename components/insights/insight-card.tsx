@@ -53,9 +53,9 @@ export function InsightCard({ insight, t, locale }: { insight: Insight; t: Trans
           : MinusIcon
       : ICONS[insight.kind];
   return (
-    <article className="flex flex-col gap-2 rounded-xl border bg-card p-4">
+    <article className="flex flex-col gap-2 sheet rounded-xl p-4">
       <h3 className="flex items-center gap-2 text-base font-semibold">
-        <Icon className="size-5 text-chart-1" aria-hidden />
+        <Icon className="size-5 text-violet" aria-hidden />
         {title}
       </h3>
       <p className="text-lg leading-snug">{body}</p>
