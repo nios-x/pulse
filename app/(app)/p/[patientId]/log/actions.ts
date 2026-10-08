@@ -84,7 +84,10 @@ export async function logMealAction(_prev: FormState, formData: FormData): Promi
 
 export type MealPhotoResult =
   | { ok: true; items: DetectedFood[]; keys: FoodKey[] }
-  | { ok: false; error: "photo.error.notFood" | "photo.error.failed" | "photo.error.tooBig" | "photo.error.off" };
+  | {
+      ok: false;
+      error: "photo.error.notFood" | "photo.error.failed" | "photo.error.busy" | "photo.error.tooBig" | "photo.error.off";
+    };
 
 /**
  * Sends a meal photo to Gemini and returns the foods it sees. Nothing is
@@ -102,6 +105,7 @@ export async function analyzeMealPhotoAction(input: { patientId: string; image: 
   const [header, base64] = parsed.data.image.split(",");
   const mimeType = header.slice("data:".length, header.indexOf(";"));
   const detection = await detectFoods(base64, mimeType);
+  if (detection === "busy") return { ok: false, error: "photo.error.busy" };
   if (!detection) return { ok: false, error: "photo.error.failed" };
   if (!detection.is_food || detection.items.length === 0) return { ok: false, error: "photo.error.notFood" };
   return { ok: true, items: detection.items, keys: keysFromDetection(detection.items) };

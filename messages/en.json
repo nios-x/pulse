@@ -336,5 +336,6 @@
   "photo.error.notFood": "No food found in this photo. Try again or tap the foods below.",
   "photo.error.failed": "Couldn't read the photo. Try again or tap the foods below.",
   "photo.error.tooBig": "The photo is too large. Try again.",
-  "photo.error.off": "Photo logging is not set up. Tap the foods below."
+  "photo.error.off": "Photo logging is not set up. Tap the foods below.",
+  "photo.error.busy": "The food reader is busy right now. Try again in a minute, or tap the foods below."
 }
