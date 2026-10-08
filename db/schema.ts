@@ -20,7 +20,7 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 
 // ---------- Enums ----------
 
-export const roleEnum = pgEnum("role", ["owner", "caregiver", "family"]);
+export const roleEnum = pgEnum("role", ["owner", "caregiver", "family", "doctor"]);
 export const scopeEnum = pgEnum("scope", ["vitals", "meds", "meals", "mood"]);
 export const glucoseContextEnum = pgEnum("glucose_context", ["fasting", "after_meal", "random"]);
 export const mealSlotEnum = pgEnum("meal_slot", ["breakfast", "lunch", "dinner", "snack"]);

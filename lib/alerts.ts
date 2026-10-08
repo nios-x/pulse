@@ -53,7 +53,7 @@ export async function createAlert(input: {
   await db.insert(alerts).values(input);
 }
 
-/** People the logger can call from an alert: the patient and caregivers with a phone number. */
+/** People the logger can call from an alert: the patient, caregivers and the doctor, if they have a phone number. */
 export async function callableMembers(patientId: string, excludeUserId: string) {
   return db
     .select({ userId: users.id, name: users.name, phone: users.phone, role: memberships.role })
@@ -62,7 +62,7 @@ export async function callableMembers(patientId: string, excludeUserId: string) 
     .where(
       and(
         eq(memberships.patientId, patientId),
-        inArray(memberships.role, ["owner", "caregiver"]),
+        inArray(memberships.role, ["owner", "caregiver", "doctor"]),
         ne(users.id, excludeUserId),
         isNotNull(users.phone)
       )

@@ -315,7 +315,7 @@
   "call.notice.offline": "They are not on Pulse right now. Try a phone call.",
   "call.notice.busy": "They are on another call",
   "call.notice.failed": "The call couldn't connect",
-  "call.notice.notAllowed": "You can only call people in this family.",
+  "call.notice.notAllowed": "Calls in Pulse are only between the family and their doctor.",
   "call.notice.noMedia": "Allow the microphone (and camera) to make calls",
   "photo.take": "Take a photo of the meal",
   "photo.orTap": "Or tap what was eaten",
@@ -337,5 +337,11 @@
   "photo.error.failed": "Couldn't read the photo. Try again or tap the foods below.",
   "photo.error.tooBig": "The photo is too large. Try again.",
   "photo.error.off": "Photo logging is not set up. Tap the foods below.",
-  "photo.error.busy": "The food reader is busy right now. Try again in a minute, or tap the foods below."
+  "photo.error.busy": "The food reader is busy right now. Try again in a minute, or tap the foods below.",
+  "role.doctor": "Doctor",
+  "role.doctor.you": "You are {name}'s doctor.",
+  "role.doctor.about": "You can read the sugar readings, meals and medicines shared with you, add lab results, and take calls from the family.",
+  "alert.callDoctor": "Call the doctor, {name}",
+  "call.error.doctorOnly": "Calls in Pulse are only with the doctor.",
+  "log.viewOnly": "Doctors can read the logs but don't add them. See Home, Medicines and Insights."
 }

@@ -75,7 +75,7 @@ export const nextPathSchema = z
 // ---------- Phase 3: profiles, invites, members ----------
 
 const uuidField = z.uuid();
-const roleField = z.enum(["owner", "caregiver", "family"]);
+const roleField = z.enum(["owner", "caregiver", "family", "doctor"]);
 const scopeList = z.array(z.enum(["vitals", "meds", "meals", "mood"])).transform((s) => [...new Set(s)]);
 const optionalText = (max: number) =>
   z

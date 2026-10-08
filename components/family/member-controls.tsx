@@ -35,7 +35,7 @@ export function MemberControls({
   patientId: string;
   membershipId: string;
   name: string;
-  role: "caregiver" | "family";
+  role: "caregiver" | "family" | "doctor";
   scopes: Scope[];
   canToggleMood: boolean;
 }) {
@@ -64,23 +64,25 @@ export function MemberControls({
 
   return (
     <div className="flex flex-col gap-1 border-t pt-3" aria-busy={pending}>
-      <label className="flex h-12 items-center justify-between gap-3 text-base">
-        {t("family.role")}
-        <select
-          value={role}
-          disabled={pending}
-          onChange={(e) => {
-            const previous = role;
-            const next = e.target.value as "caregiver" | "family";
-            setRole(next);
-            run(() => updateMemberRoleAction({ patientId, membershipId, role: next }), () => setRole(previous));
-          }}
-          className="h-11 rounded-lg border bg-card px-3 text-base"
-        >
-          <option value="caregiver">{t("role.caregiver")}</option>
-          <option value="family">{t("role.family")}</option>
-        </select>
-      </label>
+      {role !== "doctor" ? (
+        <label className="flex h-12 items-center justify-between gap-3 text-base">
+          {t("family.role")}
+          <select
+            value={role}
+            disabled={pending}
+            onChange={(e) => {
+              const previous = role;
+              const next = e.target.value as "caregiver" | "family";
+              setRole(next);
+              run(() => updateMemberRoleAction({ patientId, membershipId, role: next }), () => setRole(previous));
+            }}
+            className="h-11 rounded-lg border bg-card px-3 text-base"
+          >
+            <option value="caregiver">{t("role.caregiver")}</option>
+            <option value="family">{t("role.family")}</option>
+          </select>
+        </label>
+      ) : null}
 
       <p className="pt-1 text-sm font-medium text-muted-foreground">{t("family.canSee")}</p>
       {ALL_SCOPES.map((scope) => {

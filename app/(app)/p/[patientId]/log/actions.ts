@@ -22,7 +22,7 @@ import {
 
 export type GlucoseState = FormState & {
   alert?: SafetyResult & { mgdl: number };
-  contacts?: { name: string; phone: string }[];
+  contacts?: { name: string; phone: string; doctor: boolean }[];
 };
 
 export async function logGlucoseAction(_prev: GlucoseState, formData: FormData): Promise<GlucoseState> {
@@ -43,7 +43,10 @@ export async function logGlucoseAction(_prev: GlucoseState, formData: FormData):
   let contacts: GlucoseState["contacts"];
   if (result) {
     await createAlert({ patientId, loggedBy: user.id, ...result, sourceId: reading.id });
-    contacts = (await callableMembers(patientId, user.id)).map((m) => ({ name: m.name, phone: m.phone! }));
+    // The doctor first: the safety messages say "call your doctor".
+    contacts = (await callableMembers(patientId, user.id))
+      .map((m) => ({ name: m.name, phone: m.phone!, doctor: m.role === "doctor" }))
+      .sort((a, b) => Number(b.doctor) - Number(a.doctor));
   }
   refresh();
   return {

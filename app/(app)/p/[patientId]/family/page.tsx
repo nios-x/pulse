@@ -8,7 +8,7 @@ import { RevokeInviteButton } from "@/components/family/revoke-invite-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getT } from "@/lib/i18n-server";
-import { requirePermission } from "@/lib/permissions";
+import { canCallBetween, requirePermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/family">) {
@@ -40,7 +40,7 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
         .orderBy(asc(invites.createdAt))
     : [];
 
-  const roleBadge = { owner: "default", caregiver: "secondary", family: "outline" } as const;
+  const roleBadge = { owner: "default", caregiver: "secondary", family: "outline", doctor: "secondary" } as const;
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,7 +95,8 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
                     {t(`role.${m.role}`)}
                   </Badge>
                 </div>
-                {permissions.start_call && m.userId !== user.id ? (
+                {/* In-app calls only connect the family with their doctor. */}
+                {permissions.start_call && m.userId !== user.id && canCallBetween(membership.role, m.role) ? (
                   <div className="flex justify-end">
                     <CallButtons patientId={patientId} userId={m.userId} name={m.name} />
                   </div>
@@ -105,7 +106,7 @@ export default async function FamilyPage({ params }: PageProps<"/p/[patientId]/f
                     patientId={patientId}
                     membershipId={m.membershipId}
                     name={m.name}
-                    role={m.role as "caregiver" | "family"}
+                    role={m.role as "caregiver" | "family" | "doctor"}
                     scopes={m.scopes}
                     canToggleMood={isOwner}
                   />

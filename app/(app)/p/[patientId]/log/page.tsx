@@ -37,6 +37,9 @@ export default async function LogPage({ params }: PageProps<"/p/[patientId]/log"
       {permissions.log_checkin ? (
         <DayCard patientId={patientId} walked={checkin?.walked ?? null} sleep={checkin?.sleep ?? null} />
       ) : null}
+      {!permissions.log_glucose && !permissions.log_meals && !permissions.log_checkin ? (
+        <p className="rounded-xl border border-dashed px-4 py-6 text-center text-muted-foreground">{t("log.viewOnly")}</p>
+      ) : null}
     </div>
   );
 }
