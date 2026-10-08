@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FOOD_KEYS } from "@/lib/foods";
 import { LOCALES, type MessageKey } from "@/lib/i18n";
 
 // Every error message is an i18n key, so the form can show it with t().
@@ -110,3 +111,30 @@ export const memberRefSchema = z.object({ patientId: uuidField, membershipId: uu
 export const memberRoleSchema = memberRefSchema.extend({ role: z.enum(["caregiver", "family"]) });
 export const memberScopesSchema = memberRefSchema.extend({ scopes: scopeList });
 export const inviteRefSchema = z.object({ patientId: uuidField, inviteId: uuidField });
+
+// ---------- Phase 4: daily log ----------
+
+export const GLUCOSE_MIN = 20;
+export const GLUCOSE_MAX = 600;
+
+export const glucoseSchema = z.object({
+  patientId: uuidField,
+  mgdl: z.coerce
+    .number(msg("log.error.mgdl"))
+    .int(msg("log.error.mgdl"))
+    .min(GLUCOSE_MIN, msg("log.error.mgdl"))
+    .max(GLUCOSE_MAX, msg("log.error.mgdl")),
+  context: z.enum(["fasting", "after_meal", "random"], msg("log.error.context")),
+});
+
+export const mealSchema = z.object({
+  patientId: uuidField,
+  slot: z.enum(["breakfast", "lunch", "dinner", "snack"], msg("log.error.slot")),
+  items: z.array(z.enum(FOOD_KEYS)).min(1, msg("log.error.items")).max(12),
+});
+
+export const checkinSchema = z.object({
+  patientId: uuidField,
+  walked: z.boolean().optional(),
+  sleep: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+});

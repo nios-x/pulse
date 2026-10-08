@@ -37,3 +37,13 @@ export function foodLabel(key: string, locale: "en" | "hi"): string {
 export function isHighCarb(key: string): boolean {
   return byKey.get(key)?.carb === "high";
 }
+
+export type MealSlotKey = "breakfast" | "lunch" | "dinner" | "snack";
+
+/** The meal slot a log most likely belongs to, from India clock minutes since midnight. */
+export function slotForTime(minutes: number): MealSlotKey {
+  if (minutes >= 4 * 60 && minutes < 11 * 60) return "breakfast";
+  if (minutes >= 11 * 60 && minutes < 15 * 60 + 30) return "lunch";
+  if (minutes >= 15 * 60 + 30 && minutes < 18 * 60 + 30) return "snack";
+  return "dinner";
+}
