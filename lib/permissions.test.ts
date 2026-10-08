@@ -41,6 +41,8 @@ const TABLE: Record<Permission, Record<Role, Cell>> = {
   create_share_link: { owner: true, caregiver: true, family: false, doctor: false },
   delete_patient: { owner: true, caregiver: false, family: false, doctor: false },
   start_call: { owner: true, caregiver: true, family: true, doctor: true },
+  book_call: { owner: true, caregiver: true, family: false, doctor: false },
+  answer_booking: { owner: false, caregiver: false, family: false, doctor: true },
 };
 
 function expected(cell: Cell, scopes: readonly Scope[], patientHasOwner: boolean): boolean {

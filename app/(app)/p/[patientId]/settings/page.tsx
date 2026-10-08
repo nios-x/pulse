@@ -11,7 +11,7 @@ export default async function SettingsPage({ params }: PageProps<"/p/[patientId]
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-semibold">{t("settings.title")}</h1>
+      <h1 className="text-[2rem] leading-tight">{t("settings.title")}</h1>
 
       <Card>
         <CardHeader>

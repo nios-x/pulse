@@ -25,7 +25,7 @@ export const DEMO_PEOPLE = {
   ramesh: { name: "Ramesh Sharma", email: "ramesh@pulse.demo", phone: "9800000001" },
   rahul: { name: "Rahul Sharma", email: "rahul@pulse.demo", phone: "9800000002" },
   maa: { name: "Sunita Sharma", email: "maa@pulse.demo", phone: "9800000003" },
-  doctor: { name: "Dr. Anjali Verma", email: "doctor@pulse.demo", phone: "9800000004" },
+  doctor: { name: "Dr. Anjali Verma", email: "doctor@pulse.demo", phone: "9800000004", isDoctor: true, clinic: "Verma Diabetes Clinic, Kanpur" },
 } as const;
 
 /** Small deterministic random generator, so every seed run looks the same. */

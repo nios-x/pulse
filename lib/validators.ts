@@ -64,6 +64,13 @@ export const signUpSchema = z.object({
     .min(8, msg("auth.error.passwordLength"))
     .max(200, msg("auth.error.passwordLength")),
   phone: phoneField,
+  // "doctor" makes an account that serves families instead of a health profile of its own.
+  accountType: z.enum(["family", "doctor"]).catch("family"),
+  clinic: z
+    .string()
+    .trim()
+    .max(80, msg("auth.error.clinic"))
+    .transform((s) => s || null),
 });
 
 /** Only same-site relative paths, so ?next= can't send people to another site. */
@@ -83,17 +90,6 @@ const optionalText = (max: number) =>
     .trim()
     .max(max)
     .transform((s) => s || null);
-
-export const createPatientSchema = z.object({
-  name: z.string().trim().min(1, msg("profile.error.name")).max(80, msg("profile.error.name")),
-  forWhom: z.enum(["me", "family"], msg("profile.error.forWhom")),
-  birthYear: z
-    .string()
-    .trim()
-    .refine((s) => s === "" || (/^\d{4}$/.test(s) && +s >= 1900 && +s <= new Date().getFullYear()), msg("profile.error.birthYear"))
-    .transform((s) => (s ? Number(s) : null)),
-  city: optionalText(60),
-});
 
 export const inviteSchema = z.object({
   patientId: uuidField,
@@ -237,3 +233,16 @@ export const foodDetectionSchema = z.object({
   is_food: z.boolean(),
   items: z.array(detectedFoodSchema).max(12),
 });
+
+// ---------- Booked doctor calls ----------
+
+export const bookCallSchema = z.object({
+  patientId: uuidField,
+  doctorId: z.uuid(msg("booking.error.doctor")),
+  memberId: z.uuid(msg("booking.error.member")),
+  // <input type="datetime-local"> value, read as India time
+  when: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/, msg("booking.error.when")),
+  reason: optionalText(120),
+});
+export const bookingRefSchema = z.object({ patientId: uuidField, bookingId: uuidField });
+export const respondBookingSchema = bookingRefSchema.extend({ accept: z.boolean() });

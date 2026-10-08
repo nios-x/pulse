@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FootprintsIcon } from "lucide-react";
+import { FootprintsIcon, FrownIcon, MehIcon, SmileIcon } from "lucide-react";
 import { saveCheckinAction } from "@/app/(app)/p/[patientId]/log/actions";
 import { useT } from "@/components/i18n-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const SLEEP_FACES = [
-  { value: 1, face: "😣", key: "sleep.bad" },
-  { value: 2, face: "😐", key: "sleep.okay" },
-  { value: 3, face: "😊", key: "sleep.good" },
+  { value: 1, Face: FrownIcon, key: "sleep.bad" },
+  { value: 2, Face: MehIcon, key: "sleep.okay" },
+  { value: 3, Face: SmileIcon, key: "sleep.good" },
 ] as const;
 
 /** "Walked today?" and sleep: each is a single tap that saves right away. */
@@ -36,21 +36,23 @@ export function DayCard({
 
   const pill = (active: boolean) =>
     cn(
-      "flex min-h-14 items-center justify-center gap-2 rounded-xl border text-base font-medium transition-colors",
-      active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+      "flex min-h-14 items-center justify-center gap-2 rounded-xl border text-base font-medium transition-[background-color,border-color,color] duration-200",
+      active ? "border-violet bg-violet-wash text-violet-deep" : "border-transparent bg-card text-plum shadow-card hover:border-violet/40"
     );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <FootprintsIcon className="size-5 text-success" aria-hidden />
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-mint-wash text-go">
+            <FootprintsIcon className="size-5" aria-hidden />
+          </span>
           {t("log.day")}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5" aria-busy={pending}>
         <div className="flex flex-col gap-2">
-          <p className="text-base font-medium">{t("log.walked")}</p>
+          <p className="font-heading text-base font-semibold text-plum">{t("log.walked")}</p>
           <div className="grid grid-cols-2 gap-2">
             {[true, false].map((value) => (
               <button
@@ -70,23 +72,21 @@ export function DayCard({
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <p className="text-base font-medium">{t("log.sleep")}</p>
+          <p className="font-heading text-base font-semibold text-plum">{t("log.sleep")}</p>
           <div className="grid grid-cols-3 gap-2">
-            {SLEEP_FACES.map(({ value, face, key }) => (
+            {SLEEP_FACES.map(({ value, Face, key }) => (
               <button
                 key={value}
                 type="button"
                 aria-pressed={sleep === value}
-                className={cn(pill(sleep === value), "min-h-20 flex-col gap-0")}
+                className={cn(pill(sleep === value), "min-h-20 flex-col gap-1")}
                 onClick={() => {
                   const previous = sleep;
                   setSleep(value);
                   save({ sleep: value }, () => setSleep(previous));
                 }}
               >
-                <span aria-hidden className="text-3xl leading-tight">
-                  {face}
-                </span>
+                <Face className="size-8" aria-hidden />
                 <span className="text-sm">{t(key)}</span>
               </button>
             ))}

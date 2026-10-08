@@ -2,21 +2,21 @@
 // The carb tag drives the meal-effect insight (lib/insights.ts).
 
 export type CarbTag = "high" | "medium" | "low";
-export type Food = { key: string; en: string; hi: string; carb: CarbTag; emoji: string };
+export type Food = { key: string; en: string; hi: string; carb: CarbTag };
 
 export const FOODS = [
-  { key: "roti", en: "Roti", hi: "रोटी", carb: "medium", emoji: "🫓" },
-  { key: "rice", en: "Rice", hi: "चावल", carb: "high", emoji: "🍚" },
-  { key: "paratha", en: "Paratha", hi: "पराठा", carb: "high", emoji: "🥙" },
-  { key: "dal", en: "Dal", hi: "दाल", carb: "low", emoji: "🥣" },
-  { key: "sabzi", en: "Sabzi", hi: "सब्ज़ी", carb: "low", emoji: "🥗" },
-  { key: "poha", en: "Poha", hi: "पोहा", carb: "high", emoji: "🍛" },
-  { key: "curd", en: "Curd", hi: "दही", carb: "low", emoji: "🥛" },
-  { key: "egg_meat", en: "Egg or meat", hi: "अंडा या मांस", carb: "low", emoji: "🍳" },
-  { key: "fruit", en: "Fruit", hi: "फल", carb: "medium", emoji: "🍎" },
-  { key: "sweets", en: "Sweets", hi: "मिठाई", carb: "high", emoji: "🍬" },
-  { key: "chai_sugar", en: "Chai with sugar", hi: "चीनी वाली चाय", carb: "high", emoji: "☕" },
-  { key: "fried_snack", en: "Fried snack", hi: "तला हुआ नाश्ता", carb: "high", emoji: "🥟" },
+  { key: "roti", en: "Roti", hi: "रोटी", carb: "medium" },
+  { key: "rice", en: "Rice", hi: "चावल", carb: "high" },
+  { key: "paratha", en: "Paratha", hi: "पराठा", carb: "high" },
+  { key: "dal", en: "Dal", hi: "दाल", carb: "low" },
+  { key: "sabzi", en: "Sabzi", hi: "सब्ज़ी", carb: "low" },
+  { key: "poha", en: "Poha", hi: "पोहा", carb: "high" },
+  { key: "curd", en: "Curd", hi: "दही", carb: "low" },
+  { key: "egg_meat", en: "Egg or meat", hi: "अंडा या मांस", carb: "low" },
+  { key: "fruit", en: "Fruit", hi: "फल", carb: "medium" },
+  { key: "sweets", en: "Sweets", hi: "मिठाई", carb: "high" },
+  { key: "chai_sugar", en: "Chai with sugar", hi: "चीनी वाली चाय", carb: "high" },
+  { key: "fried_snack", en: "Fried snack", hi: "तला हुआ नाश्ता", carb: "high" },
 ] as const satisfies readonly Food[];
 
 export type FoodKey = (typeof FOODS)[number]["key"];

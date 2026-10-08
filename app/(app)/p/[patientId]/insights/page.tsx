@@ -41,7 +41,7 @@ export default async function InsightsPage({ params }: PageProps<"/p/[patientId]
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-semibold">{t("insights.title")}</h1>
+      <h1 className="text-[2rem] leading-tight">{t("insights.title")}</h1>
 
       <Card>
         <CardHeader>
@@ -79,15 +79,15 @@ export default async function InsightsPage({ params }: PageProps<"/p/[patientId]
       </Card>
 
       <section aria-labelledby="cards-heading" className="flex flex-col gap-3">
-        <h2 id="cards-heading" className="text-lg font-semibold">
+        <h2 id="cards-heading" className="text-xl font-semibold">
           {t("insights.whatMatters")}
         </h2>
         {insights.map((insight) => (
           <InsightCard key={insight.kind} insight={insight} t={t} locale={locale} />
         ))}
         {needed > 0 && !insights.some((i) => i.kind === "meal") ? (
-          <p className="flex items-start gap-3 rounded-xl border border-dashed p-4 text-base">
-            <LightbulbIcon className="mt-0.5 size-5 shrink-0 text-chart-2" aria-hidden />
+          <p className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 p-4 text-base">
+            <LightbulbIcon className="mt-0.5 size-5 shrink-0 text-watch" aria-hidden />
             {t("insights.needMore", { count: needed })}
           </p>
         ) : null}

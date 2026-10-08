@@ -30,15 +30,17 @@ export function SugarCard({
         <GlucoseAlertScreen alert={state.alert} contacts={state.contacts ?? []} onClose={() => setDismissed(state)} />
       ) : null}
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <DropletIcon className="size-5 text-destructive" aria-hidden />
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-alert-wash text-alert">
+            <DropletIcon className="size-5" aria-hidden />
+          </span>
           {t("log.sugar")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <input type="hidden" name="patientId" value={patientId} />
-          <label className="flex items-baseline gap-3">
+          <label className="flex items-baseline gap-3 rounded-2xl bg-violet-wash px-4 py-2 focus-within:ring-4 focus-within:ring-violet/20">
             <span className="sr-only">{t("log.sugarLabel")}</span>
             <input
               name="mgdl"
@@ -49,10 +51,10 @@ export function SugarCard({
               placeholder="000"
               defaultValue={state.ok ? "" : state.values?.mgdl}
               aria-invalid={state.fieldErrors?.mgdl ? true : undefined}
-              className="h-20 w-40 rounded-xl border border-input bg-card px-4 text-5xl! font-semibold tabular-nums outline-none placeholder:text-muted-foreground/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+              className="figure h-20 w-36 min-w-0 flex-1 bg-transparent text-6xl! font-bold outline-none placeholder:text-violet-soft/60 aria-invalid:text-alert-ink"
               required
             />
-            <span className="text-lg text-muted-foreground">mg/dL</span>
+            <span className="font-heading text-lg font-medium text-ink-2">mg/dL</span>
           </label>
           <ChoiceChips
             name="context"

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n-server";
 
-/** Chips for every patient I belong to, plus "Create a profile". */
+/** Chips for every patient I belong to. */
 export async function PatientSwitcher({
   patients,
   activeId,
@@ -21,25 +20,16 @@ export async function PatientSwitcher({
               href={`/home?p=${p.id}`}
               aria-current={p.id === activeId ? "true" : undefined}
               className={cn(
-                "flex h-11 items-center rounded-full border px-4 text-base font-medium whitespace-nowrap",
+                "flex h-11 items-center rounded-full px-4 font-heading text-[0.9375rem] font-medium whitespace-nowrap transition-colors",
                 p.id === activeId
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "bg-card hover:bg-muted"
+                  ? "bg-lilac font-semibold text-violet-deep"
+                  : "bg-card text-ink-2 shadow-card hover:text-violet-deep"
               )}
             >
               {p.name}
             </Link>
           </li>
         ))}
-        <li>
-          <Link
-            href="/new"
-            className="flex h-11 items-center gap-1 rounded-full border border-dashed px-4 text-base whitespace-nowrap text-muted-foreground hover:bg-muted"
-          >
-            <PlusIcon className="size-5" aria-hidden />
-            {t("home.createProfile")}
-          </Link>
-        </li>
       </ul>
     </nav>
   );

@@ -21,22 +21,25 @@ export async function TodayTimeline({
   const { t, locale } = await getT();
 
   if (items.length === 0) {
-    return <p className="rounded-xl border border-dashed px-4 py-6 text-center text-muted-foreground">{t("timeline.empty")}</p>;
+    return <p className="rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 px-4 py-6 text-center text-muted-foreground">{t("timeline.empty")}</p>;
   }
 
   return (
-    <ol className="flex flex-col divide-y rounded-xl border bg-card">
+    <ol className="flex flex-col divide-y divide-edge sheet rounded-xl">
       {items.map((item) => {
         const who = whoLogged({ ...item, viewerId, ownerUserId, patientName });
         let icon;
+        let tint = "bg-violet-wash";
         let title: string;
         switch (item.kind) {
           case "reading":
-            icon = <DropletIcon className="size-5 text-destructive" aria-hidden />;
+            icon = <DropletIcon className="size-5 text-alert" aria-hidden />;
+            tint = "bg-alert-wash";
             title = t("timeline.reading", { mgdl: item.mgdl, context: t(`context.${item.context}`) });
             break;
           case "meal":
-            icon = <UtensilsIcon className="size-5 text-chart-2" aria-hidden />;
+            icon = <UtensilsIcon className="size-5 text-watch" aria-hidden />;
+            tint = "bg-watch-wash";
             // Photo-logged meals name the actual dishes; chip-logged ones use the food list.
             title = `${t(`slot.${item.slot}`)}: ${
               item.details?.length
@@ -45,11 +48,13 @@ export async function TodayTimeline({
             }`;
             break;
           case "dose":
-            icon = <PillIcon className="size-5 text-primary" aria-hidden />;
+            icon = <PillIcon className="size-5 text-violet" aria-hidden />;
+            tint = "bg-violet-wash";
             title = t("timeline.dose", { med: `${item.medName} ${item.dose}`.trim(), slot: formatSlot(item.slot, locale) });
             break;
           case "checkin": {
-            icon = <FootprintsIcon className="size-5 text-success" aria-hidden />;
+            icon = <FootprintsIcon className="size-5 text-go" aria-hidden />;
+            tint = "bg-mint-wash";
             const parts = [];
             if (item.walked !== null) parts.push(item.walked ? t("timeline.walked") : t("timeline.notWalked"));
             if (item.sleep) parts.push(`${t("log.sleep")}: ${t(SLEEP_KEYS[item.sleep as 1 | 2 | 3])}`);
@@ -58,11 +63,11 @@ export async function TodayTimeline({
           }
         }
         return (
-          <li key={`${item.kind}-${item.id}`} className="flex gap-3 px-4 py-3">
-            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">{icon}</span>
+          <li key={`${item.kind}-${item.id}`} className="flex gap-3.5 px-4 py-3.5">
+            <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>{icon}</span>
             <div className="min-w-0">
-              <p className="text-base leading-snug font-medium">{title}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base leading-snug font-medium text-plum">{title}</p>
+              <p className="text-sm text-ink-3">
                 {t(who.key, who.vars)}, {formatTime(item.at, locale)}
               </p>
             </div>

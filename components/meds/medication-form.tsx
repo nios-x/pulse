@@ -68,7 +68,7 @@ export function MedicationForm({
           type="time"
           name="customTime"
           defaultValue={custom}
-          className="h-11 rounded-lg border border-input bg-card px-3"
+          className="h-12 rounded-lg border border-input bg-card px-3 font-heading font-medium text-plum focus-visible:border-violet focus-visible:ring-4 focus-visible:ring-violet/15 focus-visible:outline-none"
         />
       </label>
       <FormMessage>{err(state.fieldErrors?.times ?? state.error)}</FormMessage>

@@ -40,6 +40,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(), // always stored lowercase
   passwordHash: text("password_hash").notNull(),
   phone: text("phone"), // optional, used for "Call Rahul" tel: links
+  // A doctor account serves families: no health profile of its own, joins each family by invite.
+  isDoctor: boolean("is_doctor").notNull().default(false),
+  clinic: text("clinic"), // doctor only, e.g. "Verma Diabetes Clinic, Kanpur"
   createdAt: createdAt(),
 });
 
@@ -318,6 +321,31 @@ export const callLogs = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("call_logs_patient_idx").on(t.patientId, t.startedAt)]
+);
+
+// A family member asks the doctor for a call at a set time; the doctor accepts or declines.
+export const callBookings = pgTable(
+  "call_bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: patientId(),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    bookedBy: uuid("booked_by").references(() => users.id, { onDelete: "set null" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    reason: text("reason"),
+    status: text("status").$type<"requested" | "accepted" | "declined" | "cancelled">().notNull().default("requested"),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("call_bookings_patient_idx").on(t.patientId, t.scheduledAt),
+    index("call_bookings_doctor_idx").on(t.doctorId, t.scheduledAt),
+  ]
 );
 
 export type User = typeof users.$inferSelect;

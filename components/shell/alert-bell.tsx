@@ -35,11 +35,11 @@ export function AlertBell({ patientId, initialCount }: { patientId: string; init
     <Link
       href={`/p/${patientId}/alerts`}
       aria-label={count ? t("alerts.bellUnread", { count }) : t("alerts.bell")}
-      className="relative flex size-11 items-center justify-center rounded-lg hover:bg-muted"
+      className="relative flex size-11 items-center justify-center rounded-full bg-card text-plum shadow-card transition-colors hover:text-violet-deep"
     >
-      <BellIcon className={cn("size-6", count > 0 && "text-destructive")} aria-hidden />
+      <BellIcon className={cn("size-5.5", count > 0 && "text-alert-ink")} aria-hidden />
       {count > 0 ? (
-        <span className="absolute top-1 right-1 flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-white">
+        <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-alert px-1 font-heading text-[0.6875rem] font-bold text-white ring-2 ring-background">
           {count > 9 ? "9+" : count}
         </span>
       ) : null}

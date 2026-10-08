@@ -10,7 +10,7 @@ import { sessions, users } from "@/db/schema";
 export const SESSION_COOKIE = "pulse_session";
 const SESSION_DAYS = 30;
 
-export type CurrentUser = { id: string; name: string; email: string; phone: string | null };
+export type CurrentUser = { id: string; name: string; email: string; phone: string | null; isDoctor: boolean };
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -18,6 +18,36 @@ export function hashPassword(password: string): Promise<string> {
 
 export function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Inserts a user, hashing the password. Returns the new id, or null if the email is taken. */
+export async function createUser(
+  input: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string | null;
+    isDoctor?: boolean;
+    clinic?: string | null;
+  },
+  tx: Tx | typeof db = db
+): Promise<string | null> {
+  const passwordHash = await hashPassword(input.password);
+  const [user] = await tx
+    .insert(users)
+    .values({
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      isDoctor: input.isDoctor ?? false,
+      clinic: input.isDoctor ? input.clinic : null,
+      passwordHash,
+    })
+    .onConflictDoNothing({ target: users.email })
+    .returning({ id: users.id });
+  return user?.id ?? null;
 }
 
 /** Only call from a Server Action or Route Handler: it sets a cookie. */
@@ -39,7 +69,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const [row] = await db
-    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone, isDoctor: users.isDoctor })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(and(eq(sessions.id, token), gt(sessions.expiresAt, sql`now()`)))

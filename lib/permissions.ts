@@ -28,6 +28,8 @@ export const PERMISSIONS = [
   "create_share_link",
   "delete_patient",
   "start_call", // in-app calls, only ever between a doctor and the family (see canCallBetween)
+  "book_call", // ask the doctor for a call at a set time
+  "answer_booking", // the doctor accepts or declines a booked call
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -36,7 +38,7 @@ export type PermissionContext = { patientHasOwner: boolean };
 
 /** What each role may do at all. Copied from the "Family roles and permissions" table. */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  owner: PERMISSIONS,
+  owner: PERMISSIONS.filter((p) => p !== "answer_booking"),
   caregiver: [
     "view_summary",
     "view_vitals",
@@ -55,6 +57,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "manage_members",
     "create_share_link",
     "start_call",
+    "book_call",
   ],
   family: [
     "view_summary",
@@ -69,7 +72,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   ],
   // A doctor joins by invite, reads what the patient shares, records lab results
   // and sugar limits, and takes calls. Never logs daily data or manages the family.
-  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "log_labs", "edit_patient", "start_call"],
+  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "log_labs", "edit_patient", "start_call", "answer_booking"],
 };
 
 /**

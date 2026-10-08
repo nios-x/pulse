@@ -20,12 +20,12 @@ export default async function AlertsPage({ params }: PageProps<"/p/[patientId]/a
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("alerts.title")}</h1>
+      <h1 className="text-[2rem] leading-tight">{t("alerts.title")}</h1>
 
       {membership.role === "caregiver" ? <CaregiverNotices patient={patient} now={current} /> : null}
 
       {rows.length === 0 ? (
-        <p className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-8 text-center text-muted-foreground">
+        <p className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 px-4 py-8 text-center text-muted-foreground">
           <BellOffIcon className="size-8" aria-hidden />
           {t("alerts.empty")}
         </p>

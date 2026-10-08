@@ -160,3 +160,9 @@ export async function removeMemberAction(input: { patientId: string; membershipI
   refresh();
   return { ok: true };
 }
+
+/** "Make a new link" on the login page, when the patient's last invite expired. */
+export async function renewLoginInviteAction(formData: FormData) {
+  formData.set("role", "owner");
+  await createInviteAction({}, formData);
+}
