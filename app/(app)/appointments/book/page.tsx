@@ -16,7 +16,7 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
   const doctors = await getDoctors();
   return (
     <div className="flex flex-col gap-8 animate-rise">
-      <PageHeader title="Book a doctor" description="Clinic visits or video consults with doctors who speak your language. The family gets a confirmation email." />
+      <PageHeader illustration="consult" title="Book a doctor" description="Clinic visits or video consults with doctors who speak your language. The family gets a confirmation email." />
       <BookingFlow
         today={istDate()}
         members={members.map((m) => ({ id: m.id, name: m.name }))}

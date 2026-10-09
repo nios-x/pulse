@@ -38,6 +38,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-8 animate-rise">
       <PageHeader
+        illustration="patients"
         title="Appointments"
         description="Clinic visits, lab tests and video consults for everyone, with doctor, place and notes."
         actions={

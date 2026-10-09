@@ -8,6 +8,13 @@ const ILLUSTRATIONS = {
   appointments: { width: 1200, height: 900 },
   patients: { width: 1200, height: 900 },
   welcome: { width: 1200, height: 900 },
+  care: { width: 1200, height: 900 },
+  checkup: { width: 1200, height: 900 },
+  consult: { width: 1200, height: 900 },
+  "eye-test": { width: 1200, height: 900 },
+  lab: { width: 1200, height: 900 },
+  physio: { width: 1200, height: 900 },
+  scan: { width: 1200, height: 900 },
   "not-found": { width: 650, height: 512 },
   error: { width: 650, height: 512 },
 } as const;

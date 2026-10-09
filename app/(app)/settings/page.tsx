@@ -71,7 +71,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="flex flex-col gap-8 animate-rise">
-      <PageHeader title="Family settings" description={`Members, invites, who can do what, and how the ${ctx.family.name}'s information is shared.`} />
+      <PageHeader illustration="care" title="Family settings" description={`Members, invites, who can do what, and how the ${ctx.family.name}'s information is shared.`} />
       <TabLinks label="Settings sections" active={tab} tabs={TABS.map((t) => ({ key: t.key, label: t.label, href: `/settings?tab=${t.key}` }))} />
       {tab === "members" && <MembersTab />}
       {tab === "invites" && <InvitesTab presetMember={sp.member ?? null} />}

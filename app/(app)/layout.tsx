@@ -47,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         {children}
         <CelebrationHost />
-        <AssistantWidget userName={ctx.user.name} people={ctx.visibleMembers.map((m) => ({ name: m.name, isSelf: m.id === ctx.self.id }))} />
+        <AssistantWidget userName={ctx.user.name} />
       </AppShell>
     </AccessProvider>
   );

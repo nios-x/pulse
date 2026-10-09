@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/health/empty-state";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { MemberCard } from "@/components/health/member-card";
 import { LevelProgress } from "@/components/game/level-card";
+import { PulseOrbit } from "@/components/game/pulse-orbit";
 import { QuestList } from "@/components/game/quest-list";
 import { StreakFlame } from "@/components/game/streak-flame";
 import { RoleGate } from "@/components/health/role-gate";
@@ -58,7 +59,7 @@ export default async function DashboardPage() {
         {/* Light mesh behind the greeting; dark mode keeps the plain card. */}
         <ShaderBackground className="absolute inset-0 -z-10 dark:hidden" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-card/85 via-card/45 to-transparent dark:hidden" />
-        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center xl:grid-cols-[minmax(0,1.25fr)_auto_minmax(0,1fr)] xl:gap-8">
           <div className="flex flex-col gap-4">
             <h1 className="font-heading text-[2rem] leading-[1.1] font-bold sm:text-[2.5rem]">
               {greeting()}, {firstName(ctx.user.name)}
@@ -73,6 +74,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
           </div>
+          <PulseOrbit className="mx-auto -my-2 lg:hidden xl:mx-0 xl:my-0 xl:block" quests={game.today.available.map((q) => ({ key: q.key, title: q.title, done: game.today.done.includes(q.key) }))} />
           <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card/90 p-5 shadow-soft">
             <div className="flex items-center justify-between gap-3">
               <StreakFlame days={game.streak} />

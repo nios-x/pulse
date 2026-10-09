@@ -58,6 +58,11 @@ export async function getGameSummaries(memberIds: string[], days = 90): Promise<
   return out;
 }
 
+/** One member's day-by-day activity, oldest first, ending today. */
+export async function getActivity(memberId: string, days = 90): Promise<DayActivity[]> {
+  return activityFor(memberId, await load([memberId], days), days);
+}
+
 /** Day-by-day inputs for the weekly health score and trend lines. */
 export async function getScoreDays(memberId: string, days = 63): Promise<ScoreDay[]> {
   const data = await load([memberId], days);

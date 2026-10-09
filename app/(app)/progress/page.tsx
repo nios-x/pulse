@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
-import { Sprout } from "lucide-react";
+import Link from "next/link";
+import { Route, Sprout } from "lucide-react";
 import { db } from "@/db";
 import { medications, pcosProfiles } from "@/db/schema";
+import { Illustration } from "@/components/brand/illustration";
 import { BadgeGrid, HabitTally } from "@/components/game/badges";
 import { GraceDayButton } from "@/components/game/grace-day-button";
 import { LevelProgress } from "@/components/game/level-card";
@@ -113,8 +115,11 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
             <WeekStrip days={game.last7} />
           </div>
         </div>
-        <div className="flex flex-col justify-center rounded-xl bg-surface p-4 sm:p-5">
+        <div className="flex flex-col justify-center gap-3 rounded-xl bg-surface p-4 sm:p-5">
           <LevelProgress level={game.level} xp={game.xp} />
+          <Link href={`/journeys${member.id === ctx.self.id ? "" : `?member=${member.id}`}`} className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-lg text-[0.9375rem] font-medium text-brand hover:underline">
+            <Route className="size-4" aria-hidden="true" /> See the whole journey
+          </Link>
         </div>
       </section>
 
@@ -163,8 +168,9 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-heading text-xl font-semibold"><Sprout className="size-5 text-primary" aria-hidden="true" /> Personalized plan</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-center">
           <PlanCard memberId={member.id} firstName={first} plan={plan ? { startedOn: plan.startedOn, items: plan.items, days: planDays } : null} suggestions={suggestions} />
+          <Illustration name="physio" className="hidden transition-transform duration-300 ease-out-soft hover:-translate-y-1.5 hover:scale-[1.04] lg:block" />
         </CardContent>
       </Card>
 

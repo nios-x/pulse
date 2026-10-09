@@ -1,0 +1,24 @@
+# Local Postgres for development. Start it with `bun run db:up`, then `bun run setup` once.
+# Data lives in the `pulse-db` volume, so it survives restarts; `bun run db:reset` wipes it.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: pulse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: pulse
+      TZ: Asia/Kolkata
+    ports:
+      - "${PULSE_DB_PORT:-5432}:5432"
+    volumes:
+      - pulse-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulse -d pulse"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pulse-db:

@@ -13,7 +13,7 @@ export default async function ScanPage() {
   if (!members.length) return <ForbiddenNotice action="records.upload" />;
   return (
     <div className="flex flex-col gap-8 animate-rise">
-      <PageHeader title="Scan a prescription" description="Take a photo of the doctor's prescription. AI reads the medicines, you check them, and Pulse sets up the reminders." />
+      <PageHeader illustration="lab" title="Scan a prescription" description="Take a photo of the doctor's prescription. AI reads the medicines, you check them, and Pulse sets up the reminders." />
       <PrescriptionScanner members={members.map((m) => ({ id: m.id, name: m.name }))} aiEnabled={aiEnabled()} />
     </div>
   );

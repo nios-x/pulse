@@ -32,6 +32,7 @@ export default async function TriagePage({ searchParams }: { searchParams: Promi
   return (
     <div className="flex flex-col gap-8 animate-rise">
       <PageHeader
+        illustration="checkup"
         title="Symptom check"
         description="Describe how someone feels, by typing or speaking in your language. You'll get how urgently to seek care, never a diagnosis."
         actions={

@@ -15,23 +15,52 @@ import { classify, formatReading, VITAL_META } from "@/lib/vitals";
 
 // Follow-up turns reuse the snapshot briefly instead of re-reading the dashboard every message.
 const SNAPSHOT_TTL_MS = 60_000;
-const snapshots = new Map<string, { at: number; text: string }>();
+type FamilyData = { snapshot: string; suggestions: string[] };
+const snapshots = new Map<string, { at: number; data: FamilyData }>();
 
-/** A compact, plain-text snapshot of what this person can see. Kept small: it goes in every request. */
-export async function familySnapshot(ctx: AppContext): Promise<string> {
+/**
+ * A compact, plain-text snapshot of what this person can see (kept small: it goes in every
+ * request), plus suggested questions drawn from what needs attention right now.
+ */
+export async function familyData(ctx: AppContext): Promise<FamilyData> {
   // Keyed by role and visible members so a "View as" preview never sees the admin's snapshot.
   const key = `${ctx.user.id}|${ctx.role}|${ctx.visibleMembers.map((m) => m.id).join(",")}`;
   const now = Date.now();
   const hit = snapshots.get(key);
-  if (hit && now - hit.at < SNAPSHOT_TTL_MS) return hit.text;
-  const text = await buildSnapshot(ctx);
+  if (hit && now - hit.at < SNAPSHOT_TTL_MS) return hit.data;
+  const d = await getDashboard(ctx);
+  const data = { snapshot: buildSnapshot(ctx, d), suggestions: dataSuggestions(ctx, d) };
   for (const [k, v] of snapshots) if (now - v.at >= SNAPSHOT_TTL_MS) snapshots.delete(k);
-  snapshots.set(key, { at: now, text });
-  return text;
+  snapshots.set(key, { at: now, data });
+  return data;
 }
 
-async function buildSnapshot(ctx: AppContext): Promise<string> {
-  const d = await getDashboard(ctx);
+type Dashboard = Awaited<ReturnType<typeof getDashboard>>;
+
+/** Questions about what needs attention today, most urgent first. */
+function dataSuggestions(ctx: AppContext, d: Dashboard): string[] {
+  const out: string[] = [];
+  const isSelf = (memberId: string) => memberId === ctx.self.id;
+  const name = (memberId: string) => firstName(ctx.visibleMembers.find((m) => m.id === memberId)?.name ?? "");
+  const whose = (memberId: string) => (isSelf(memberId) ? "my" : `${name(memberId)}'s`);
+  const rank = { urgent: 0, warning: 1, info: 2 } as const;
+  for (const a of [...d.alerts].sort((x, y) => rank[x.severity] - rank[y.severity])) {
+    // Alert titles read "Papa's blood pressure is high" / "Papa missed a dose".
+    if (a.kind === "abnormal_vital") {
+      const what = a.title.replace(/^.+?'s /, `${whose(a.memberId)} `);
+      out.push(`${what.charAt(0).toUpperCase()}${what.slice(1)}. What should ${isSelf(a.memberId) ? "I" : "we"} do?`);
+    } else if (a.kind === "missed_dose") out.push(isSelf(a.memberId) ? "I missed a dose. What should I do?" : `${name(a.memberId)} missed a dose. What should we do?`);
+    else if (a.kind === "refill") out.push("Which medicines need a refill soon?");
+    else if (a.kind === "interaction") out.push(`Is it safe to take ${a.title.split(":")[0]} together?`);
+    if (out.length >= 2) break;
+  }
+  if (d.todayDoses.some((x) => x.state === "due")) out.push("Which medicines are due right now?");
+  const soon = d.upcoming.find((a) => a.startsAt.getTime() - Date.now() < 7 * 86_400_000);
+  if (soon) out.push(`Help me prepare for ${whose(soon.memberId)} visit with ${soon.doctorName}`);
+  return [...new Set(out)];
+}
+
+function buildSnapshot(ctx: AppContext, d: Dashboard): string {
   const lines: string[] = [];
   for (const m of ctx.visibleMembers) {
     const age = ageFrom(m.dateOfBirth);
@@ -72,7 +101,7 @@ async function buildSnapshot(ctx: AppContext): Promise<string> {
   return lines.join("\n").trim();
 }
 
-export function systemPrompt(ctx: AppContext, snapshot: string, language: string): string {
+export function systemPrompt(ctx: AppContext, snapshot: string, language: string, knowledge: string): string {
   const now = new Intl.DateTimeFormat("en-IN", { dateStyle: "full", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date());
   return [
     `You are Pulse, a warm, calm family health companion inside the Pulse app. You are talking with ${ctx.user.name} (call them ${firstName(ctx.user.name)}), who manages health for the "${ctx.family.name}" family. It is ${now} in India.`,
@@ -85,6 +114,10 @@ export function systemPrompt(ctx: AppContext, snapshot: string, language: string
     "- If the data doesn't say, say you don't know. Never invent readings, medicines or appointments.",
     "- Only discuss the people listed below; you cannot see anyone else in the family.",
     "- You cannot change anything in the app yourself; tell them where to tap instead.",
+    "",
+    "# What you know about this user (from earlier chats)",
+    "Use this to personalise: their preferences, routines, goals and worries, and what you talked about before. Mention past chats only when relevant, and never repeat this section back verbatim.",
+    knowledge || "Nothing yet. This may be your first chat.",
     "",
     "# Family health data (only what this user is allowed to see)",
     snapshot || "No health data recorded yet.",

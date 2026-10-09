@@ -21,6 +21,7 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="flex flex-col gap-8 animate-rise">
       <PageHeader
+        illustration="scan"
         title="Health records"
         description="Lab reports, prescriptions, scans and vaccination cards, on one timeline for the whole family."
         actions={

@@ -1,0 +1,48 @@
+/*
+ * Journeys (components/game/journey-explorer.tsx). The road itself is moved from JS;
+ * these are the small extras around it. Reduced motion is handled globally.
+ */
+
+/* The next stop breathes twice when the road finishes drawing, then rests. */
+.journey-next::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid var(--brand);
+  opacity: 0;
+  animation: journey-breathe 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2 both;
+}
+
+/* A stop lighting up as you pass it. */
+.journey-lit {
+  animation: journey-lit 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* The "you" marker settles onto the road. */
+.journey-you {
+  animation: journey-you 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Decorative dotted trail behind the hero copy. */
+.journey-trail {
+  stroke-dasharray: 2 14;
+  animation: journey-trail 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes journey-breathe {
+  0% { opacity: 0.7; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+@keyframes journey-lit {
+  0% { transform: scale(0.7); }
+  100% { transform: scale(1); }
+}
+@keyframes journey-you {
+  from { opacity: 0; transform: translateY(6px) scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes journey-trail {
+  from { stroke-dashoffset: 160; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}

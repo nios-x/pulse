@@ -25,6 +25,7 @@ export const config = {
     "/onboarding/:path*",
     "/doctor/:path*",
     "/progress/:path*",
+    "/journeys/:path*",
     "/pcos/:path*",
   ],
 };

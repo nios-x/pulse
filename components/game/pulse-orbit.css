@@ -1,0 +1,52 @@
+/*
+ * The dashboard's living heart (components/game/pulse-orbit.tsx): a slow orbit of today's
+ * quests, a heartbeat and a pulse line. Everything stops under reduced motion.
+ */
+.orbit-spin {
+  animation: orbit-spin 60s linear infinite;
+}
+.orbit-counter {
+  animation: orbit-spin 60s linear infinite reverse;
+}
+.orbit-beat {
+  transform-box: fill-box;
+  transform-origin: 50% 55%;
+  animation: orbit-beat 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.orbit-ecg {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: orbit-ecg 2.6s ease-in-out infinite;
+}
+.orbit-ring {
+  transition: stroke-dasharray 1.2s cubic-bezier(0.22, 1, 0.36, 1) 300ms;
+}
+.orbit-glow {
+  animation: orbit-glow 3.6s ease-in-out infinite;
+}
+
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes orbit-beat {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.1); }
+  24% { transform: scale(0.98); }
+  36% { transform: scale(1.06); }
+  52% { transform: scale(1); }
+}
+@keyframes orbit-ecg {
+  0% { stroke-dashoffset: 120; opacity: 0; }
+  15% { opacity: 1; }
+  55% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: -120; opacity: 0; }
+}
+@keyframes orbit-glow {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50% { opacity: 0.9; transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-spin, .orbit-counter, .orbit-beat, .orbit-glow { animation: none !important; }
+  .orbit-ecg { animation: none !important; stroke-dashoffset: 0; opacity: 1; }
+}

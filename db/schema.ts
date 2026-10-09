@@ -562,6 +562,58 @@ export const foodLogs = pgTable(
   (t) => [index("food_logs_member_date_idx").on(t.memberId, t.date)]
 );
 
+// ---------- Pulse assistant ----------
+
+/**
+ * One chat with the assistant. Only each user's newest 10 are kept (lib/assistant-memory.ts).
+ * Everything said is health data, so titles, summaries and messages are encrypted (lib/crypto.ts).
+ */
+export const assistantConversations = pgTable(
+  "assistant_conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    familyId: uuid("family_id")
+      .notNull()
+      .references(() => families.id, { onDelete: "cascade" }),
+    title: bytea("title"),
+    summary: bytea("summary"),
+    language: varchar("language", { length: 8 }).notNull().default("en-IN"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("assistant_conversations_user_idx").on(t.userId, t.updatedAt)]
+);
+
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => assistantConversations.id, { onDelete: "cascade" }),
+    role: text("role").notNull(), // user | model
+    content: bytea("content").notNull(),
+    emergency: boolean("emergency").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index("assistant_messages_conversation_idx").on(t.conversationId, t.createdAt)]
+);
+
+/** The user's knowledge base: what the assistant has learned, as encrypted JSON (AssistantMemory). */
+export const assistantProfiles = pgTable("assistant_profiles", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  familyId: uuid("family_id")
+    .notNull()
+    .references(() => families.id, { onDelete: "cascade" }),
+  memory: bytea("memory").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Row types for app code
 export type User = typeof users.$inferSelect;
 export type Family = typeof families.$inferSelect;
