@@ -23,7 +23,7 @@ export function UploadDialog({ members, defaultOpen, defaultMemberId, today }: {
   const [open, setOpen] = useState(Boolean(defaultOpen) && allowed.length > 0);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [pending, start] = useTransition();
 
   const pick = (f: File | null) => {

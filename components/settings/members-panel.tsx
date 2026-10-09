@@ -155,7 +155,7 @@ function AssignPopover({ member, members, disabled, reason }: { member: PanelMem
 
 export function AddMemberDialog({ trigger }: { trigger?: React.ReactElement }) {
   const [open, setOpen] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [pending, start] = useTransition();
   const submit = (f: FormData) =>
     start(async () => {

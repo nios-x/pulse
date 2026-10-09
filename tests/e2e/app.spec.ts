@@ -43,7 +43,7 @@ test("mark a dose taken and undo it", async ({ page }) => {
 
 test("record a high BP reading: labelled in words and alerts the family", async ({ page }) => {
   await signIn(page, "rahul");
-  await page.getByRole("button", { name: "Record a reading" }).click();
+  await page.getByRole("button", { name: "Record a reading" }).first().click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Who is this for?").selectOption({ label: "Kamala Mehta" });
   await dialog.getByLabel("Top number").fill("165");
@@ -321,4 +321,73 @@ test("mobile layout uses a bottom tab bar", async ({ browser }) => {
   await nav.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("dialog").getByRole("link", { name: "Emergency card" })).toBeVisible();
   await ctx.close();
+});
+
+test("quests: logging water earns XP and the progress chart shows before/after the plan", async ({ page }) => {
+  await signIn(page, "rahul");
+  await page.goto(`/progress?member=${IDS.rahul}`);
+  const quest = page.getByRole("listitem").filter({ hasText: "glasses of water" }).filter({ has: page.getByRole("button", { name: "More water" }) }).first();
+  const before = Number((await quest.getByText(/^\d+\/8 glasses$/).textContent())!.split("/")[0]);
+  await quest.getByRole("button", { name: "More water" }).click();
+  await expect(quest.getByText(`${before + 1}/8 glasses`)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(`${before + 1}/8 glasses`).first()).toBeVisible();
+  await page.goto(`/progress?member=${IDS.suresh}`);
+  await expect(page.getByText("Is it working?")).toBeVisible();
+  await expect(page.getByText("Plan started").first()).toBeVisible();
+  await expect(page.getByText("Not a diagnosis. Consult a doctor.").first()).toBeVisible();
+});
+
+test("PCOS care: plan and cycle tracking for Priya", async ({ page }) => {
+  await signIn(page, "rahul");
+  await page.goto(`/pcos?member=${IDS.priya}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Priya");
+  await page.goto(`/pcos?member=${IDS.priya}&tab=cycle`);
+  await expect(page.getByText("Average cycle")).toBeVisible();
+  await page.getByRole("button", { name: "Log period" }).click();
+  await toast(page, "Period logged");
+});
+
+test("doctor account: sign up, family connects with code, doctor leaves a note", async ({ page, browser }) => {
+  const email = `dr.test.${Date.now()}@example.com`;
+  await page.goto("/sign-up?as=doctor");
+  await page.getByLabel("Full name").fill("Meera Iyer");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill("doctor1234");
+  await page.getByLabel("Speciality").fill("Endocrinologist");
+  await page.getByLabel("Registration number").fill("KMC 2015/02/4321");
+  await page.getByLabel("Clinic or hospital").fill("Iyer Clinic");
+  await page.getByLabel("City").fill("Bengaluru");
+  await page.getByRole("checkbox", { name: /registered medical practitioner/ }).check();
+  await page.getByRole("button", { name: "Create doctor account" }).click();
+  await page.waitForURL("**/doctor**");
+  await expect(page.getByText("Dr. Meera Iyer").first()).toBeVisible();
+  const code = (await page.getByTestId("connect-code").textContent())?.trim() ?? "";
+  expect(code).toMatch(/^[A-Z0-9]{6}$/);
+
+  // The family connects using the code
+  const fam = await browser.newContext();
+  const fp = await fam.newPage();
+  await signIn(fp, "rahul");
+  await fp.goto("/settings?tab=doctors");
+  await fp.getByLabel("Doctor's code").fill(code);
+  await fp.getByLabel("Share whose information?").selectOption({ label: "Suresh Mehta" });
+  await fp.getByRole("checkbox", { name: /consent/ }).check();
+  await fp.getByRole("button", { name: "Connect doctor" }).click();
+  await toast(fp, /Dr. Meera Iyer can now see Suresh/);
+
+  // Doctor sees the patient and leaves a note
+  await page.goto("/doctor/patients");
+  await page.getByRole("link", { name: /Suresh Mehta/ }).first().click();
+  await page.getByLabel("Visit summary").fill("Sugar improving with evening walks.");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await toast(page, "Note saved and shared with the family");
+
+  // A doctor cannot open family pages
+  await page.goto("/dashboard");
+  await page.waitForURL("**/doctor**");
+
+  await fp.goto(`/members/${IDS.suresh}`);
+  await expect(fp.getByText("Sugar improving with evening walks.")).toBeVisible();
+  await fam.close();
 });

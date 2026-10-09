@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, doctors } from "@/db/schema";
+import { appointments, doctorAccess, doctors } from "@/db/schema";
 import { runAction, type ActionResult } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { randomToken } from "@/lib/crypto";
@@ -102,6 +102,10 @@ export async function bookAppointment(input: unknown): Promise<ActionResult<{ id
       })
       .returning({ id: appointments.id });
     await audit(ctx.family.id, ctx.user.id, "appointment.booked", { member: member.name, doctor: doc.name, mode: data.mode });
+    // Booking shares this person's summary with the doctor until 7 days after the visit (consent shown on the booking screen)
+    if (doc.userId) {
+      await db.insert(doctorAccess).values({ doctorId: doc.id, familyId: ctx.family.id, memberId: member.id, reason: "booking", grantedBy: ctx.user.id, expiresAt: new Date(startsAt.getTime() + 7 * 86_400_000) });
+    }
     await notify({
       familyId: ctx.family.id,
       memberId: member.id,

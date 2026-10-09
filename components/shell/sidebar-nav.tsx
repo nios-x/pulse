@@ -22,9 +22,9 @@ export function SidebarNav({ members }: { members: NavMember[] }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 items-center gap-3 rounded-lg px-3 text-base font-medium transition-colors duration-150",
+                  "flex min-h-11 items-center gap-3 rounded-xl px-3 text-base font-medium transition-colors duration-150",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { History } from "lucide-react";
+import { db } from "@/db";
+import { doctorAccess, doctors } from "@/db/schema";
+import { DoctorsPanel } from "@/components/settings/doctors-panel";
 import { PageHeader } from "@/components/health/page-header";
 import { AccountPanel } from "@/components/settings/account-panel";
 import { InvitePanel } from "@/components/settings/invite-panel";
@@ -22,6 +26,7 @@ const TABS = [
   { key: "members", label: "Members" },
   { key: "invites", label: "Invites" },
   { key: "roles", label: "Roles & permissions" },
+  { key: "doctors", label: "Doctors" },
   { key: "privacy", label: "Sharing & privacy" },
   { key: "account", label: "Account" },
 ] as const;
@@ -51,6 +56,11 @@ const AUDIT_LABEL: Record<string, string> = {
   "prescription.scanned": "scanned a prescription",
   "appointment.booked": "booked an appointment",
   "account.password_changed": "changed their password",
+  "doctor.connected": "connected a doctor",
+  "doctor.revoked": "removed a doctor's access",
+  "doctor.note_added": "doctor added a note",
+  "plan.started": "started a care plan",
+  "pcos.setup": "set up PCOS care",
 };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; member?: string }> }) {
@@ -66,6 +76,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {tab === "members" && <MembersTab />}
       {tab === "invites" && <InvitesTab presetMember={sp.member ?? null} />}
       {tab === "roles" && <PermissionMatrix matrix={effectiveMatrix(ctx.family.permissions ?? {})} />}
+      {tab === "doctors" && <DoctorsTab />}
       {tab === "privacy" && <PrivacyTab />}
       {tab === "account" && <AccountPanel user={ctx.user} mailMode={mailMode()} canExport={manage} />}
     </div>
@@ -104,6 +115,33 @@ async function InvitesTab({ presetMember }: { presetMember: string | null }) {
       presetMemberId={presetMember}
       profiles={ctx.members.filter((m) => !m.userId).map((m) => ({ id: m.id, name: m.name }))}
       invites={invites.map((i) => ({ id: i.id, code: i.code, role: i.role, email: i.email, memberName: i.memberId ? names.get(i.memberId) ?? null : null, expires: formatDate(i.expiresAt) }))}
+    />
+  );
+}
+
+async function DoctorsTab() {
+  const ctx = await getContext();
+  const rows = await db
+    .select({ access: doctorAccess, doctor: doctors })
+    .from(doctorAccess)
+    .innerJoin(doctors, eq(doctorAccess.doctorId, doctors.id))
+    .where(and(eq(doctorAccess.familyId, ctx.family.id), isNull(doctorAccess.revokedAt), gt(doctorAccess.expiresAt, new Date())));
+  const visible = new Map(ctx.visibleMembers.map((m) => [m.id, m]));
+  return (
+    <DoctorsPanel
+      members={ctx.visibleMembers.map((m) => ({ id: m.id, name: m.name }))}
+      connections={rows
+        .filter((r) => visible.has(r.access.memberId))
+        .map((r) => ({
+          id: r.access.id,
+          doctor: r.doctor.name,
+          specialty: r.doctor.specialty,
+          memberId: r.access.memberId,
+          memberName: visible.get(r.access.memberId)!.name,
+          tone: visible.get(r.access.memberId)!.avatarTone,
+          reason: r.access.reason,
+          until: formatDate(r.access.expiresAt),
+        }))}
     />
   );
 }
@@ -155,7 +193,7 @@ async function PrivacyTab() {
             <ul className="flex max-h-96 flex-col divide-y divide-border overflow-y-auto">
               {auditRows.map((a) => (
                 <li key={a.id} className="flex items-start justify-between gap-3 py-2.5 text-[0.9375rem]">
-                  <span><span className="font-medium">{a.actor ?? "Someone with a link"}</span> {AUDIT_LABEL[a.action] ?? a.action}{typeof a.detail.member === "string" ? ` · ${a.detail.member}` : typeof a.detail.label === "string" ? ` · ${a.detail.label}` : ""}</span>
+                  <span><span className="font-medium">{a.actor ?? (a.action.startsWith("doctor.") ? "" : "Someone with a link")}</span> {AUDIT_LABEL[a.action] ?? a.action}{typeof a.detail.member === "string" ? ` · ${a.detail.member}` : typeof a.detail.label === "string" ? ` · ${a.detail.label}` : ""}</span>
                   <span className="shrink-0 text-sm text-muted-foreground">{timeAgo(a.createdAt)}</span>
                 </li>
               ))}

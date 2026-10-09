@@ -3,14 +3,15 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const baseButtonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow] duration-150 ease-(--ease-out-soft) outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.125rem]",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-transparent font-semibold whitespace-nowrap transition-[background-color,border-color,color,box-shadow] duration-150 ease-(--ease-out-soft) outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.125rem]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-strong",
+        default: "bg-primary text-primary-foreground shadow-go hover:bg-primary-strong",
+        brand: "bg-brand text-brand-foreground shadow-brand hover:bg-brand-strong",
         outline:
           "border-border-strong bg-card text-foreground hover:bg-muted aria-expanded:bg-muted",
-        secondary: "bg-accent text-accent-foreground hover:bg-primary-soft/70",
+        secondary: "bg-accent text-accent-foreground hover:bg-brand-soft",
         ghost: "text-foreground hover:bg-muted aria-expanded:bg-muted",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",

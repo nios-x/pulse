@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/logo";
+import { StreakFlame } from "@/components/game/streak-flame";
 import { RoleBadge } from "@/components/health/role-badge";
 import type { Role } from "@/db/schema";
 import { ROLE_LABEL } from "@/lib/permissions";
@@ -22,6 +23,8 @@ export function AppShell({
   user,
   notifications,
   unread,
+  streak,
+  level,
 }: {
   children: React.ReactNode;
   familyName: string;
@@ -32,6 +35,8 @@ export function AppShell({
   user: { name: string; email: string; tone: number; selfId: string };
   notifications: NotificationItem[];
   unread: number;
+  streak: number;
+  level: string;
 }) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
@@ -45,9 +50,14 @@ export function AppShell({
           </Link>
         </div>
         <SidebarNav members={members} />
-        <div className="border-t border-sidebar-border p-4">
-          <p className="truncate text-sm font-medium">{familyName}</p>
-          <p className="text-xs text-muted-foreground">Encrypted records · Consent-based sharing</p>
+        <div className="p-3">
+          <Link href="/progress" className="flex items-center gap-3 rounded-2xl bg-brand p-3.5 text-brand-foreground shadow-brand transition-transform hover:-translate-y-0.5">
+            <StreakFlame days={streak} size="sm" onDark />
+            <span className="min-w-0 text-sm leading-tight">
+              <span className="block font-semibold">{level}</span>
+              <span className="block truncate opacity-85">{familyName}</span>
+            </span>
+          </Link>
         </div>
       </aside>
 
@@ -71,6 +81,9 @@ export function AppShell({
               <RoleBadge role={role} />
             </div>
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              <Link href="/progress" aria-label={`Your streak: ${streak} days, level ${level}. Open progress and rewards`} className="rounded-full px-1.5 py-1 transition-colors hover:bg-muted">
+                <StreakFlame days={streak} size="sm" />
+              </Link>
               {actualRole === "admin" && <ViewAsSwitcher current={role} className="hidden md:inline-flex" />}
               <NotificationsMenu items={notifications} unread={unread} />
               <ThemeToggle />

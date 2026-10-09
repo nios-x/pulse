@@ -52,7 +52,7 @@ export function MedicationForm({
   const allowed = members.filter((m) => can("meds.manage", m.id));
   const [v, setV] = useState<MedFormValues>({ ...initial, memberId: initial.memberId || allowed[0]?.id || "" });
   const [ongoing, setOngoing] = useState(!initial.endDate);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [showSuggest, setShowSuggest] = useState(false);
   const [pending, start] = useTransition();
   const set = <K extends keyof MedFormValues>(k: K, val: MedFormValues[K]) => setV((s) => ({ ...s, [k]: val }));

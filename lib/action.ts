@@ -5,7 +5,7 @@ import { ForbiddenError } from "@/lib/context";
 
 export type ActionResult<T = undefined> =
   | { ok: true; message?: string; data?: T }
-  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+  | { ok: false; error: string; fieldErrors?: Record<string, string | undefined> };
 
 /** Wraps a Server Action body: permission and validation errors become friendly messages. */
 export async function runAction<T>(fn: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {

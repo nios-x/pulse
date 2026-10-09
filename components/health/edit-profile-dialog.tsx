@@ -19,7 +19,7 @@ type Props = Pick<Member, "id" | "name" | "relation" | "role" | "dateOfBirth" | 
 export function EditProfileDialog({ member }: { member: Props }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [allergies, setAllergies] = useState<Allergy[]>(member.allergies);
   const [conditions, setConditions] = useState<Condition[]>(member.conditions);
   const [contacts, setContacts] = useState<EmergencyContact[]>(member.emergencyContacts);

@@ -18,6 +18,7 @@ export type CurrentUser = {
   phone: string | null;
   emailReminders: boolean;
   dailyDigest: boolean;
+  isDoctor: boolean;
 };
 
 export function hashPassword(password: string): Promise<string> {
@@ -53,6 +54,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       phone: users.phone,
       emailReminders: users.emailReminders,
       dailyDigest: users.dailyDigest,
+      isDoctor: users.isDoctor,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))

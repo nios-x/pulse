@@ -19,7 +19,7 @@ export function InvitePanel({ invites, profiles, presetMemberId, origin }: { inv
   const [role, setRole] = useState<Role>("caregiver");
   const [memberId, setMemberId] = useState(presetMemberId ?? "");
   const [email, setEmail] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [created, setCreated] = useState<{ code: string; url: string } | null>(null);
   const [pending, start] = useTransition();
 
