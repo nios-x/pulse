@@ -2,11 +2,13 @@ import { AccessProvider } from "@/components/providers/access-provider";
 import { AppShell } from "@/components/shell/app-shell";
 import { getContext } from "@/lib/context";
 import { getNotifications, getUnreadCount } from "@/lib/data";
+import { getGameSummaries } from "@/lib/game-data";
 import { relationLabel, timeAgo } from "@/lib/labels";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext();
-  const [notes, unread] = await Promise.all([getNotifications(ctx.family.id, 15), getUnreadCount(ctx.family.id)]);
+  const [notes, unread, games] = await Promise.all([getNotifications(ctx.family.id, 15), getUnreadCount(ctx.family.id), getGameSummaries([ctx.self.id], 60)]);
+  const game = games.get(ctx.self.id)!;
   const visibleIds = new Set(ctx.visibleMembers.map((m) => m.id));
   const items = notes
     .filter((n) => n.kind !== "digest" && (!n.memberId || visibleIds.has(n.memberId)))
@@ -38,6 +40,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         user={{ name: ctx.user.name, email: ctx.user.email, tone: ctx.self.avatarTone, selfId: ctx.self.id }}
         notifications={items}
         unread={Math.min(unread, items.filter((i) => i.unread).length)}
+        streak={game.streak}
+        level={game.level.name}
       >
         {children}
       </AppShell>

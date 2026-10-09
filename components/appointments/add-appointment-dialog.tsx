@@ -18,7 +18,7 @@ export function AddAppointmentDialog({ members, today }: { members: { id: string
   const allowed = members.filter((m) => can("appointments.manage", m.id));
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"in_person" | "video">("in_person");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [pending, start] = useTransition();
   const submit = (f: FormData) =>
     start(async () => {

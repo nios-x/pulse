@@ -32,18 +32,18 @@ export function BottomTabs({ members }: { members: NavMember[] }) {
             const Icon = item.icon;
             return (
               <li key={item.href} className="flex flex-1">
-                <Link href={item.href} aria-current={active ? "page" : undefined} className={cn(tab, active ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
-                  <span className={cn("flex h-8 w-14 items-center justify-center rounded-full transition-colors", active && "bg-accent")}>
+                <Link href={item.href} aria-current={active ? "page" : undefined} className={cn(tab, active ? "text-accent-foreground" : "text-muted-foreground hover:text-foreground")}>
+                  <span className={cn("flex h-8 w-14 items-center justify-center rounded-full transition-colors", active && "bg-brand text-brand-foreground")}>
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
-                  {item.label}
+                  {item.mobileLabel ?? item.label}
                 </Link>
               </li>
             );
           })}
           <li className="flex flex-1">
-            <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className={cn(tab, "cursor-pointer", moreActive ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
-              <span className={cn("flex h-8 w-14 items-center justify-center rounded-full", moreActive && "bg-accent")}>
+            <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className={cn(tab, "cursor-pointer", moreActive ? "text-accent-foreground" : "text-muted-foreground hover:text-foreground")}>
+              <span className={cn("flex h-8 w-14 items-center justify-center rounded-full", moreActive && "bg-brand text-brand-foreground")}>
                 <Ellipsis className="size-5" aria-hidden="true" />
               </span>
               More

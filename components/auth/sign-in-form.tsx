@@ -16,6 +16,11 @@ const DEMO = [
   { email: "kamala@pulse.demo", name: "Kamala", role: "viewer" as const },
 ];
 
+const DOCTORS = [
+  { email: "anjali@pulse.demo", name: "Dr. Anjali", detail: "Family physician" },
+  { email: "farah@pulse.demo", name: "Dr. Farah", detail: "Endocrinologist" },
+];
+
 export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(signInAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -62,10 +67,19 @@ export function SignInForm({ next }: { next?: string }) {
               type="button"
               onClick={() => demo(d.email)}
               disabled={pending}
-              className="flex min-h-14 cursor-pointer flex-col items-start justify-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-muted disabled:opacity-60"
+              className="flex min-h-14 cursor-pointer flex-col items-start justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-muted disabled:opacity-60"
             >
               <span className="text-[0.9375rem] font-medium">{d.name}</span>
               <RoleBadge role={d.role} size="sm" />
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-sm font-medium text-muted-foreground">Or see the doctor portal</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {DOCTORS.map((d) => (
+            <button key={d.email} type="button" onClick={() => demo(d.email)} disabled={pending} className="flex min-h-14 cursor-pointer flex-col items-start justify-center gap-0.5 rounded-xl border border-border bg-card px-3 py-2 text-left transition-colors hover:border-border-strong hover:bg-muted disabled:opacity-60">
+              <span className="text-[0.9375rem] font-medium">{d.name}</span>
+              <span className="text-xs text-muted-foreground">{d.detail}</span>
             </button>
           ))}
         </div>

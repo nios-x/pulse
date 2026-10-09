@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 export function AccountPanel({ user, mailMode, canExport }: { user: { name: string; email: string; phone: string | null; emailReminders: boolean; dailyDigest: boolean }; mailMode: string; canExport: boolean }) {
   const [reminders, setReminders] = useState(user.emailReminders);
   const [digest, setDigest] = useState(user.dailyDigest);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [preview, setPreview] = useState<string | null>(null);
   const [pending, start] = useTransition();
 

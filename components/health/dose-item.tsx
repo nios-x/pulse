@@ -4,6 +4,7 @@ import { useOptimistic, useTransition } from "react";
 import { Check, CircleSlash, Clock, EllipsisVertical, RotateCcw, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { logDose } from "@/app/actions/doses";
+import { celebrate } from "@/components/game/confetti";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { RoleGate } from "@/components/health/role-gate";
 import { StatusBadge } from "@/components/health/status-badge";
@@ -60,6 +61,7 @@ export function DoseItem({
       setOptimistic(status === "taken" ? "taken" : status === "skipped" ? "skipped" : dose.state === "taken" || dose.state === "skipped" ? "due" : dose.state);
       const res = await logDose({ medicationId: dose.medicationId, date: dose.date, time: dose.time, status });
       if (res.ok) {
+        if (res.data?.allDone) celebrate();
         toast.success(res.message ?? "Saved", {
           action: status !== "undo" ? { label: "Undo", onClick: () => act("undo") } : undefined,
         });

@@ -18,6 +18,10 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         </p>
       </div>
       <SignInForm next={next} />
+      <p className="text-center text-[0.9375rem] text-muted-foreground">
+        Are you a doctor?{" "}
+        <Link href="/sign-up?as=doctor" className="font-medium text-accent-foreground underline-offset-4 hover:underline">Join Pulse as a doctor</Link>
+      </p>
     </div>
   );
 }

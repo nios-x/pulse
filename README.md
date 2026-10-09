@@ -27,7 +27,10 @@ bun run dev                     # http://localhost:3000
 | Kamala Mehta, 65 | kamala@pulse.demo | **Viewer** | Read-only everywhere |
 | Aarav Mehta, 9 | (no login) | | Managed by the family; peanut allergy on the emergency card |
 
-The sign-in page has one-tap buttons for each.
+| Dr. Anjali Deshpande | anjali@pulse.demo | **Doctor** | Doctor portal: patients Suresh and Aarav shared with her, notes, connect code `ANJ7DQ` |
+| Dr. Farah Khan | farah@pulse.demo | **Doctor** | Sees Suresh through a booking (access ends 7 days after the visit) |
+
+The sign-in page has one-tap buttons for each. The seed has 60 days of history so the progress chart shows Suresh's numbers before and after his care plan started 6 weeks ago.
 
 ## Features
 
@@ -43,6 +46,10 @@ The sign-in page has one-tap buttons for each.
 | Emergency card | High-contrast, printable, shareable; blood group and allergies first; QR code to a public, revocable link; read aloud |
 | Symptom check | **Red-flag rules run before AI** (chest pain + sweating = emergency, stroke signs, low SpO₂, self-harm → Tele-MANAS 14416). AI can only raise the level, never lower it; diagnosis-like output is discarded. **Voice input in 10 Indian languages** |
 | Family settings | Members, roles, caregiver assignments, invites (email via nodemailer or WhatsApp), **roles × actions permissions matrix**, time-limited share links with view counts, activity log, account and email preferences, data export |
+| **Streaks and rewards** | Daily fruit quests (medicines, a reading, water, walk, fruit & veg, sleep). 3 quests keep the streak alive, 2 rest days a week pause it. XP, levels from Seed to Harvest hero, 12 badges, a fruit basket and a friendly family leaderboard. Confetti respects reduced motion |
+| **Progress: is it working?** | Rule-based personalised care plan per person (conditions, age, readings). Weekly health score (40% medicines, 35% readings in range, 25% habit goals) plus BP, fasting sugar and weight, charted with a "Plan started" line and before/after averages |
+| **PCOS care** | Starts from the doctor's prescription, then an 8-question quiz that picks a lifestyle pattern (insulin-led, inflammatory, adrenal, post-pill). Daily protocol checklist, period log with your own rhythm (no 28-day pressure), symptom heatmap, meal logger with gentle feedback, support numbers |
+| **Doctor accounts** | Doctors sign up at `/sign-up?as=doctor` (registration number + declaration). They get a 6-character connect code; families share one person for 1–12 months with consent, and booking a visit shares that person until 7 days after it. The doctor portal shows today's visits, shared patients (medicines, clashes, vitals, records) and lets them leave notes the family sees and gets emailed about. Families can remove access any time |
 | Notifications | In-app bell + email (nodemailer): dose-time reminders, missed-dose alerts to caregivers, abnormal readings, refills, next-day appointments, 7 am family summary |
 
 ### Role-based access

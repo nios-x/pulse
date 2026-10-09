@@ -15,6 +15,8 @@ import {
   Plus,
   Ruler,
   Siren,
+  Sprout,
+  Stethoscope,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -35,7 +37,9 @@ import { VitalDialog } from "@/components/health/vital-dialog";
 import { TabLinks } from "@/components/shell/tab-links";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { VitalKind } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { doctorNotes, doctors, type VitalKind } from "@/db/schema";
 import { allowed, findVisibleMember, getContext } from "@/lib/context";
 import { doseHistory, getMemberOverview } from "@/lib/data";
 import { ageFrom, formatDay, formatTime } from "@/lib/dates";
@@ -61,7 +65,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const member = findVisibleMember(ctx, id);
   if (!member) notFound();
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "overview";
-  const data = await getMemberOverview(member);
+  const [data, notes] = await Promise.all([
+    getMemberOverview(member),
+    db.select({ n: doctorNotes, doctor: doctors.name }).from(doctorNotes).innerJoin(doctors, eq(doctorNotes.doctorId, doctors.id)).where(eq(doctorNotes.memberId, member.id)).orderBy(desc(doctorNotes.createdAt)).limit(3),
+  ]);
   const isMe = member.id === ctx.self.id;
   const age = ageFrom(member.dateOfBirth);
   const first = firstName(member.name);
@@ -101,6 +108,9 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href={`/progress?member=${member.id}`} className={buttonVariants({ variant: "secondary" })}>
+            <Sprout aria-hidden="true" /> Progress
+          </Link>
           <Link href={`/emergency/${member.id}`} className={buttonVariants({ variant: "destructive-outline" })}>
             <Siren aria-hidden="true" /> Emergency card
           </Link>
@@ -212,6 +222,25 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </div>
 
           <div className="flex flex-col gap-6">
+            {notes.length > 0 && (
+              <Card className="border-brand/30 bg-brand-soft/40">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Stethoscope className="size-5 text-accent-foreground" aria-hidden="true" /> From the doctor</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="flex flex-col gap-3">
+                    {notes.map(({ n, doctor }) => (
+                      <li key={n.id} className="rounded-xl bg-card p-3.5 text-[0.9375rem]">
+                        <p className="text-sm font-medium text-muted-foreground">{doctor} · {formatDay(n.createdAt)}</p>
+                        <p className="mt-1">{n.summary}</p>
+                        {n.advice && <p className="mt-1.5 rounded-lg bg-success-soft px-3 py-2"><span className="font-semibold">Advice: </span>{n.advice}</p>}
+                        {n.followUpOn && <p className="mt-1.5 text-sm text-muted-foreground">Follow-up: {formatDay(n.followUpOn)}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Allergies &amp; conditions</CardTitle>

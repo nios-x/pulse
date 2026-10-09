@@ -7,6 +7,16 @@
  * Dates are built relative to "today" so the demo always looks current.
  */
 import type {
+  carePlans,
+  cycleLogs,
+  doctorAccess,
+  doctorNotes,
+  foodLogs,
+  graceDays,
+  habitLogs,
+  pcosProfiles,
+  protocolLogs,
+  symptomLogs,
   appointments,
   doctors,
   doseLogs,
@@ -34,6 +44,8 @@ export const ID = {
     priya: "b0000000-0000-4000-8000-000000000002",
     suresh: "b0000000-0000-4000-8000-000000000003",
     kamala: "b0000000-0000-4000-8000-000000000004",
+    anjali: "b0000000-0000-4000-8000-000000000010",
+    farah: "b0000000-0000-4000-8000-000000000011",
   },
   members: {
     rahul: "c0000000-0000-4000-8000-000000000001",
@@ -50,6 +62,14 @@ export const DEMO_ACCOUNTS = [
   { email: "suresh@pulse.demo", name: "Suresh Mehta", role: "member", note: "Sees only his own profile" },
   { email: "kamala@pulse.demo", name: "Kamala Mehta", role: "viewer", note: "Read-only" },
 ] as const;
+
+export const DEMO_DOCTORS = [
+  { email: "anjali@pulse.demo", name: "Dr. Anjali Deshpande", note: "Family physician, connected to Suresh and Aarav" },
+  { email: "farah@pulse.demo", name: "Dr. Farah Khan", note: "Endocrinologist, access through Suresh's booking" },
+] as const;
+
+/** The day (relative to today) when the personalized plans started, for the progress chart. */
+export const PLAN_START_OFFSET = -42;
 
 /** Small deterministic random generator so every seed looks the same. */
 function rng(seed: number) {
@@ -73,6 +93,16 @@ export type MockData = {
   doctors: Insert<typeof doctors>[];
   appointments: Insert<typeof appointments>[];
   records: (Omit<Insert<typeof records>, "fileData"> & { file?: { svg: string } })[];
+  habitLogs: Insert<typeof habitLogs>[];
+  carePlans: Insert<typeof carePlans>[];
+  graceDays: Insert<typeof graceDays>[];
+  pcosProfiles: Insert<typeof pcosProfiles>[];
+  cycleLogs: Insert<typeof cycleLogs>[];
+  symptomLogs: Insert<typeof symptomLogs>[];
+  protocolLogs: Insert<typeof protocolLogs>[];
+  foodLogs: Insert<typeof foodLogs>[];
+  doctorAccess: Insert<typeof doctorAccess>[];
+  doctorNotes: Insert<typeof doctorNotes>[];
   shareLinks: Insert<typeof shareLinks>[];
   triageSessions: Insert<typeof triageSessions>[];
   notifications: Insert<typeof notifications>[];
@@ -95,6 +125,8 @@ export function buildMockData(now: Date = new Date()): MockData {
     { id: U.priya, name: "Priya Mehta", email: "priya@pulse.demo", phone: "+91 98903 22814", consentAt: at(-118, "19:00") },
     { id: U.suresh, name: "Suresh Mehta", email: "suresh@pulse.demo", phone: "+91 94221 60593", consentAt: at(-110, "11:00") },
     { id: U.kamala, name: "Kamala Mehta", email: "kamala@pulse.demo", phone: "+91 94224 78120", consentAt: at(-110, "11:30") },
+    { id: U.anjali, name: "Dr. Anjali Deshpande", email: "anjali@pulse.demo", phone: "+91 20 2546 1180", consentAt: at(-100, "09:00"), isDoctor: true, emailReminders: true, dailyDigest: false },
+    { id: U.farah, name: "Dr. Farah Khan", email: "farah@pulse.demo", phone: "+91 20 6609 5000", consentAt: at(-100, "09:00"), isDoctor: true, emailReminders: true, dailyDigest: false },
   ];
 
   const family: MockData["family"] = {
@@ -149,7 +181,10 @@ export function buildMockData(now: Date = new Date()): MockData {
       phone: "+91 98903 22814",
       avatarTone: 4,
       allergies: [{ name: "Penicillin", severity: "moderate", reaction: "Skin rash" }],
-      conditions: [{ name: "Hypothyroidism", since: "2019" }],
+      conditions: [
+        { name: "Hypothyroidism", since: "2019" },
+        { name: "PCOS", since: "2018" },
+      ],
       emergencyContacts: [
         { name: "Rahul Mehta", relation: "Husband", phone: "+91 98220 41736" },
         { name: "Sunil Shah", relation: "Brother", phone: "+91 99230 11457" },
@@ -261,6 +296,7 @@ export function buildMockData(now: Date = new Date()): MockData {
     med("d0000000-0000-4000-8000-000000000007", M.kamala, "Shelcal", "Calcium + Vitamin D3", "500 mg", ["13:00"], { instructions: "After lunch", pillsLeft: 18, prescribedBy: "Dr. Meenakshi Kulkarni" }),
     med("d0000000-0000-4000-8000-000000000008", M.priya, "Thyronorm", "Levothyroxine", "50 mcg", ["07:00"], { instructions: "Empty stomach", pillsLeft: 80, prescribedBy: "Dr. Farah Khan" }),
     med("d0000000-0000-4000-8000-000000000009", M.aarav, "Montair", "Montelukast", "4 mg", ["20:00"], { form: "chewable tablet", instructions: "Chew at night", pillsLeft: 12, prescribedBy: "Dr. Arjun Malhotra" }),
+    med("d0000000-0000-4000-8000-000000000011", M.priya, "Glycomet SR", "Metformin", "500 mg", ["21:00"], { instructions: "With dinner", pillsLeft: 40, prescribedBy: "Dr. Sneha Banerjee", startDate: d(-120) }),
     med("d0000000-0000-4000-8000-000000000010", M.rahul, "Pan", "Pantoprazole", "40 mg", ["07:30"], { instructions: "30 min before breakfast", pillsLeft: 9, prescribedBy: "Dr. Anjali Deshpande" }),
   ];
 
@@ -282,7 +318,7 @@ export function buildMockData(now: Date = new Date()): MockData {
   };
   const doseRows: Insert<typeof doseLogs>[] = [];
   for (const m of medsRows) {
-    for (let offset = -30; offset <= 0; offset++) {
+    for (let offset = -60; offset <= 0; offset++) {
       const date = d(offset);
       if (date < m.startDate! || (m.endDate && date > m.endDate)) continue;
       for (const time of m.times!) {
@@ -294,7 +330,9 @@ export function buildMockData(now: Date = new Date()): MockData {
         // Yesterday night Papa missed his Glycomet: drives the "missed dose" alert
         const forcedMiss = offset === -1 && m.name === "Glycomet" && time === "20:30";
         const r = rand();
-        const status = forcedMiss ? null : r < takeRate[m.memberId!] ? "taken" : r < takeRate[m.memberId!] + 0.03 ? "skipped" : null;
+        // Papa got much better at his medicines once his plan started
+        const rate = m.memberId === M.suresh ? (offset < PLAN_START_OFFSET ? 0.7 : 0.93) : takeRate[m.memberId!];
+        const status = forcedMiss ? null : r < rate ? "taken" : r < rate + 0.03 ? "skipped" : null;
         if (!status) continue;
         const [h, mm] = time.split(":").map(Number);
         const lateBy = Math.floor(rand() * 35);
@@ -320,19 +358,21 @@ export function buildMockData(now: Date = new Date()): MockData {
   for (let offset = -60; offset <= 0; offset++) {
     // Papa: BP most mornings, fasting sugar every other day, weight weekly
     if (offset % 7 !== 3 || offset > -2) {
-      const drift = offset > -10 ? 6 : 0; // creeping up lately (Brufen + missed doses)
-      const sys = Math.round(134 + drift + jitter(7));
-      const dia = Math.round(84 + drift / 2 + jitter(4));
+      // Before the plan ~146/92; after it, a steady fall to ~131/84; a small Brufen bump in the last days
+      const progress = offset < PLAN_START_OFFSET ? 0 : Math.min(1, (offset - PLAN_START_OFFSET) / 36);
+      const bump = offset > -4 ? 5 : 0;
+      const sys = Math.round(146 - 15 * progress + bump + jitter(5));
+      const dia = Math.round(92 - 8 * progress + bump / 2 + jitter(3));
       vitalRows.push({ memberId: M.suresh, kind: "bp", value: offset === 0 ? 152 : sys, value2: offset === 0 ? 96 : dia, measuredAt: offset === 0 ? at(0, "07:40") : raw(offset, "07:40"), loggedBy: U.suresh });
     }
     if (offset % 2 === 0) {
-      vitalRows.push({ memberId: M.suresh, kind: "sugar", value: Math.round(128 + jitter(16) + (offset > -10 ? 8 : 0)), context: "fasting", measuredAt: raw(offset, "07:30"), loggedBy: U.suresh });
+      vitalRows.push({ memberId: M.suresh, kind: "sugar", value: Math.round(143 - 20 * (offset < PLAN_START_OFFSET ? 0 : Math.min(1, (offset - PLAN_START_OFFSET) / 36)) + jitter(9)), context: "fasting", measuredAt: raw(offset, "07:30"), loggedBy: U.suresh });
     }
     if (offset % 5 === 0) {
       vitalRows.push({ memberId: M.suresh, kind: "sugar", value: Math.round(172 + jitter(24)), context: "after_meal", measuredAt: raw(offset, "15:00"), loggedBy: U.suresh });
     }
     if (offset % 7 === 0) {
-      vitalRows.push({ memberId: M.suresh, kind: "weight", value: Math.round((78.4 + offset * 0.03 + jitter(0.3)) * 10) / 10, measuredAt: raw(offset, "07:20"), loggedBy: U.suresh });
+      vitalRows.push({ memberId: M.suresh, kind: "weight", value: Math.round((79.6 - (offset < PLAN_START_OFFSET ? 0 : (offset - PLAN_START_OFFSET) * 0.045) + jitter(0.2)) * 10) / 10, measuredAt: raw(offset, "07:20"), loggedBy: U.suresh });
       vitalRows.push({ memberId: M.kamala, kind: "weight", value: Math.round((61.2 + jitter(0.4)) * 10) / 10, measuredAt: raw(offset, "07:15"), loggedBy: U.priya });
       vitalRows.push({ memberId: M.rahul, kind: "weight", value: Math.round((82.6 + offset * 0.02 + jitter(0.4)) * 10) / 10, measuredAt: raw(offset, "08:00"), loggedBy: U.rahul });
       vitalRows.push({ memberId: M.priya, kind: "weight", value: Math.round((58.8 + jitter(0.3)) * 10) / 10, measuredAt: raw(offset, "08:10"), loggedBy: U.priya });
@@ -371,13 +411,13 @@ export function buildMockData(now: Date = new Date()): MockData {
     "6": sat ?? null,
   });
   const doctorRows: Insert<typeof doctors>[] = [
-    { id: "e0000000-0000-4000-8000-000000000001", name: "Dr. Anjali Deshpande", specialty: "General Physician", clinic: "Deshpande Family Clinic, Kothrud", city: "Pune", languages: ["English", "Hindi", "Marathi"], yearsExperience: 18, fee: 500, rating: 4.8, teleconsult: true, hours: weekdays("10:00", "13:00", ["10:00", "12:00"]), slotMinutes: 15 },
-    { id: "e0000000-0000-4000-8000-000000000002", name: "Dr. Farah Khan", specialty: "Endocrinologist (diabetes & thyroid)", clinic: "Jehangir Hospital, Sassoon Road", city: "Pune", languages: ["English", "Hindi", "Urdu"], yearsExperience: 14, fee: 1000, rating: 4.7, teleconsult: true, hours: weekdays("11:00", "15:00"), slotMinutes: 20 },
-    { id: "e0000000-0000-4000-8000-000000000003", name: "Dr. Vikram Rao", specialty: "Cardiologist", clinic: "Ruby Hall Clinic, Bund Garden", city: "Pune", languages: ["English", "Hindi", "Kannada", "Telugu"], yearsExperience: 22, fee: 1200, rating: 4.9, teleconsult: true, hours: weekdays("16:00", "19:00", ["10:00", "13:00"]), slotMinutes: 20 },
-    { id: "e0000000-0000-4000-8000-000000000004", name: "Dr. Karthik Iyer", specialty: "Paediatrician", clinic: "Rainbow Children's Clinic, Baner", city: "Pune", languages: ["English", "Hindi", "Tamil"], yearsExperience: 11, fee: 700, rating: 4.8, teleconsult: true, hours: weekdays("09:30", "12:30", ["09:30", "12:30"]), slotMinutes: 15 },
-    { id: "e0000000-0000-4000-8000-000000000005", name: "Dr. Meenakshi Kulkarni", specialty: "Orthopaedic Surgeon", clinic: "Sahyadri Hospital, Deccan", city: "Pune", languages: ["English", "Marathi", "Hindi"], yearsExperience: 16, fee: 900, rating: 4.6, teleconsult: true, hours: weekdays("17:00", "20:00"), slotMinutes: 20 },
-    { id: "e0000000-0000-4000-8000-000000000006", name: "Dr. Arjun Malhotra", specialty: "Pulmonologist (asthma & allergy)", clinic: "Aundh Chest Clinic, Aundh", city: "Pune", languages: ["English", "Hindi", "Punjabi"], yearsExperience: 9, fee: 800, rating: 4.7, teleconsult: true, hours: weekdays("10:00", "14:00"), slotMinutes: 20 },
-    { id: "e0000000-0000-4000-8000-000000000007", name: "Dr. Sneha Banerjee", specialty: "Gynaecologist", clinic: "Cloudnine Hospital, Kalyani Nagar", city: "Pune", languages: ["English", "Hindi", "Bengali"], yearsExperience: 12, fee: 900, rating: 4.7, teleconsult: false, hours: weekdays("11:00", "16:00", ["11:00", "13:00"]), slotMinutes: 20 },
+    { id: "e0000000-0000-4000-8000-000000000001", name: "Dr. Anjali Deshpande", specialty: "General Physician", clinic: "Deshpande Family Clinic, Kothrud", city: "Pune", languages: ["English", "Hindi", "Marathi"], yearsExperience: 18, fee: 500, rating: 4.8, teleconsult: true, hours: weekdays("10:00", "13:00", ["10:00", "12:00"]), slotMinutes: 15, userId: U.anjali, connectCode: "ANJ7DQ", registrationNo: "MMC 2008/03/2214", phone: "+91 20 2546 1180", bio: "Family physician for 18 years. Believes in fewer medicines and more walking." },
+    { id: "e0000000-0000-4000-8000-000000000002", name: "Dr. Farah Khan", specialty: "Endocrinologist (diabetes & thyroid)", clinic: "Jehangir Hospital, Sassoon Road", city: "Pune", languages: ["English", "Hindi", "Urdu"], yearsExperience: 14, fee: 1000, rating: 4.7, teleconsult: true, hours: weekdays("11:00", "15:00"), slotMinutes: 20, userId: U.farah, connectCode: "FKH4ND", registrationNo: "MMC 2011/07/5521", phone: "+91 20 6609 5000", bio: "Diabetes, thyroid and PCOS care. Prefers to see home BP and sugar logs." },
+    { id: "e0000000-0000-4000-8000-000000000003", name: "Dr. Vikram Rao", specialty: "Cardiologist", clinic: "Ruby Hall Clinic, Bund Garden", city: "Pune", languages: ["English", "Hindi", "Kannada", "Telugu"], yearsExperience: 22, fee: 1200, rating: 4.9, teleconsult: true, hours: weekdays("16:00", "19:00", ["10:00", "13:00"]), slotMinutes: 20 , connectCode: "VRA9CK" },
+    { id: "e0000000-0000-4000-8000-000000000004", name: "Dr. Karthik Iyer", specialty: "Paediatrician", clinic: "Rainbow Children's Clinic, Baner", city: "Pune", languages: ["English", "Hindi", "Tamil"], yearsExperience: 11, fee: 700, rating: 4.8, teleconsult: true, hours: weekdays("09:30", "12:30", ["09:30", "12:30"]), slotMinutes: 15 , connectCode: "KIY3PD" },
+    { id: "e0000000-0000-4000-8000-000000000005", name: "Dr. Meenakshi Kulkarni", specialty: "Orthopaedic Surgeon", clinic: "Sahyadri Hospital, Deccan", city: "Pune", languages: ["English", "Marathi", "Hindi"], yearsExperience: 16, fee: 900, rating: 4.6, teleconsult: true, hours: weekdays("17:00", "20:00"), slotMinutes: 20 , connectCode: "MKU6RT" },
+    { id: "e0000000-0000-4000-8000-000000000006", name: "Dr. Arjun Malhotra", specialty: "Pulmonologist (asthma & allergy)", clinic: "Aundh Chest Clinic, Aundh", city: "Pune", languages: ["English", "Hindi", "Punjabi"], yearsExperience: 9, fee: 800, rating: 4.7, teleconsult: true, hours: weekdays("10:00", "14:00"), slotMinutes: 20 , connectCode: "AMH2LP" },
+    { id: "e0000000-0000-4000-8000-000000000007", name: "Dr. Sneha Banerjee", specialty: "Gynaecologist", clinic: "Cloudnine Hospital, Kalyani Nagar", city: "Pune", languages: ["English", "Hindi", "Bengali"], yearsExperience: 12, fee: 900, rating: 4.7, teleconsult: false, hours: weekdays("11:00", "16:00", ["11:00", "13:00"]), slotMinutes: 20 , connectCode: "SBN8WX" },
   ];
 
   // ---------- Appointments ----------
@@ -500,6 +540,118 @@ export function buildMockData(now: Date = new Date()): MockData {
     { familyId: ID.family, memberId: M.aarav, kind: "appointment", severity: "info", title: "Tomorrow: Aarav with Dr. Karthik Iyer", body: "10:15 am · Rainbow Children's Clinic, Baner", href: "/appointments", createdAt: at(0, "07:00"), readAt: at(0, "08:00"), dedupeKey: `seed-appt-${today}` },
   ];
 
+  // ---------- Habits (60 days), plans, PCOS, doctors ----------
+  const hr = rng(11);
+  const habitRows: Insert<typeof habitLogs>[] = [];
+  const habitProfile: Record<string, (offset: number) => Partial<Record<"water" | "walk" | "sleep" | "produce" | "mindful", number>>> = {
+    // Papa: low before his plan, much better after
+    [M.suresh]: (o) => (o < PLAN_START_OFFSET
+      ? { water: 4 + Math.floor(hr() * 3), walk: 5 + Math.floor(hr() * 15), sleep: 6 + Math.round(hr() * 2) / 2, produce: 2 + Math.floor(hr() * 2) }
+      : { water: 7 + Math.floor(hr() * 3), walk: hr() < 0.85 ? 30 + Math.floor(hr() * 20) : 15, sleep: 6.5 + Math.round(hr() * 3) / 2, produce: 4 + Math.floor(hr() * 3) }),
+    [M.priya]: (o) => ({ water: o > -9 ? 8 + Math.floor(hr() * 2) : 7 + Math.floor(hr() * 3), walk: o > -9 || hr() < 0.7 ? 30 + Math.floor(hr() * 15) : 20, sleep: 6.5 + Math.round(hr() * 3) / 2, produce: 4 + Math.floor(hr() * 3), mindful: o > -30 && hr() < 0.6 ? 10 : 0 }),
+    // Rahul got serious last week: a fresh 6-day streak
+    [M.rahul]: (o) => (o > -7
+      ? { water: 8 + Math.floor(hr() * 2), walk: 30 + Math.floor(hr() * 15), sleep: 7 + Math.round(hr() * 2) / 2 }
+      : { water: 5 + Math.floor(hr() * 4), walk: hr() < 0.45 ? 30 + Math.floor(hr() * 10) : 10 + Math.floor(hr() * 10), sleep: 6 + Math.round(hr() * 3) / 2 }),
+    [M.kamala]: () => ({ water: 6 + Math.floor(hr() * 3), walk: hr() < 0.5 ? 30 : 15, produce: 3 + Math.floor(hr() * 3) }),
+    [M.aarav]: () => ({ water: 5 + Math.floor(hr() * 3), produce: 3 + Math.floor(hr() * 3), sleep: 8 + Math.round(hr() * 2) / 2 }),
+  };
+  const habitLogger: Record<string, string> = { [M.suresh]: U.suresh, [M.priya]: U.priya, [M.rahul]: U.rahul, [M.kamala]: U.priya, [M.aarav]: U.priya };
+  for (let offset = -60; offset <= 0; offset++) {
+    for (const [memberId, gen] of Object.entries(habitProfile)) {
+      // Today: only what's realistic by now (water and sleep in the morning)
+      const values = gen(offset);
+      for (const [kind, value] of Object.entries(values)) {
+        if (!value) continue;
+        if (offset === 0 && kind !== "sleep" && kind !== "water") continue;
+        habitRows.push({ memberId, date: d(offset), kind: kind as "water", value: offset === 0 && kind === "water" ? Math.min(value, 3) : value, loggedBy: habitLogger[memberId] });
+      }
+    }
+  }
+
+  const carePlanRows: Insert<typeof carePlans>[] = [
+    {
+      memberId: M.suresh,
+      startedOn: d(PLAN_START_OFFSET),
+      createdBy: U.rahul,
+      items: [
+        { key: "meds_on_time", title: "Take medicines on time", detail: "Tick each dose in Pulse. Your family is told if one is missed.", category: "meds" },
+        { key: "low_salt", title: "Less salt, every meal", detail: "Under one teaspoon a day. Skip papad, pickle and namkeen on most days.", category: "eat", habit: "produce" },
+        { key: "post_meal_walk", title: "10-minute walk after meals", detail: "A short walk after lunch and dinner helps keep sugar steadier.", category: "move", habit: "walk" },
+        { key: "bp_morning", title: "Check BP each morning", detail: "Sit quietly for 5 minutes first. Same arm, same time.", category: "track" },
+        { key: "water", title: "8 glasses of water", detail: "Keep a bottle in sight. More in summer.", category: "eat", habit: "water" },
+        { key: "sleep", title: "Sleep 7–8 hours", detail: "Same bedtime each night. Screens off 30 minutes before.", category: "sleep", habit: "sleep" },
+      ],
+    },
+    {
+      memberId: M.priya,
+      startedOn: d(-30),
+      createdBy: U.priya,
+      items: [
+        { key: "protein_breakfast", title: "Protein-first breakfast", detail: "Eggs, paneer, sprouts or dal chilla before anything sweet or starchy.", category: "eat", habit: "produce" },
+        { key: "strength", title: "Strength training 3 times a week", detail: "20 minutes of squats, wall push-ups or resistance bands.", category: "move", habit: "walk" },
+        { key: "thyroid_timing", title: "Thyroid tablet on an empty stomach", detail: "Water only, 30–60 minutes before tea or breakfast.", category: "meds" },
+        { key: "water", title: "8 glasses of water", detail: "Keep a bottle in sight.", category: "eat", habit: "water" },
+        { key: "sleep", title: "Sleep 7–8 hours", detail: "Same bedtime each night.", category: "sleep", habit: "sleep" },
+      ],
+    },
+  ];
+
+  const graceRows: Insert<typeof graceDays>[] = [
+    { memberId: M.priya, date: d(-9), reason: "period" },
+    { memberId: M.suresh, date: d(-15), reason: "sick" },
+  ];
+
+  const pcosRows: Insert<typeof pcosProfiles>[] = [
+    {
+      memberId: M.priya,
+      phenotype: "insulin_resistant",
+      answers: { diagnosedWhen: "3_plus_years", wasBirthControl: false, weightDistribution: "midsection", concerns: ["acne", "bloating"], stressLevel: "managing", sleepPattern: "midnight_2am", eatingPattern: "skip_breakfast", topPriority: "periods" },
+      doctorName: "Dr. Sneha Banerjee",
+      diagnosedOn: "2018-06-15",
+      prescribed: [{ name: "Metformin SR (Glycomet SR)", dose: "500 mg", frequency: "With dinner" }],
+      supplements: [{ name: "Myo-inositol", dose: "2 g", frequency: "Morning" }],
+    },
+  ];
+  const cycleRows: Insert<typeof cycleLogs>[] = [-206, -168, -127, -90, -52, -14].map((o, i) => ({
+    memberId: M.priya,
+    startDate: d(o),
+    endDate: d(o + 5),
+    flow: i % 3 === 0 ? "heavy" : "medium",
+    loggedBy: U.priya,
+  }));
+  const symptomRows: Insert<typeof symptomLogs>[] = [];
+  const sr = rng(5);
+  for (let offset = -40; offset <= 0; offset++) {
+    const better = offset > -30 ? 1 : 0;
+    if (sr() < 0.5) symptomRows.push({ memberId: M.priya, date: d(offset), symptom: "acne", severity: sr() < 0.6 - better * 0.3 ? 2 : 1, loggedBy: U.priya });
+    if (sr() < 0.35 - better * 0.15) symptomRows.push({ memberId: M.priya, date: d(offset), symptom: "bloating", severity: 2, loggedBy: U.priya });
+    if (sr() < 0.3) symptomRows.push({ memberId: M.priya, date: d(offset), symptom: "fatigue", severity: better ? 1 : 2, loggedBy: U.priya });
+  }
+  const protocolRows: Insert<typeof protocolLogs>[] = [];
+  const pr = rng(9);
+  const pcosActions = ["balanced_breakfast", "post_meal_walk", "sleep_by_midnight", "protein_first", "pair_carbs"];
+  for (let offset = -30; offset <= -1; offset++) {
+    for (const key of pcosActions) if (pr() < 0.7) protocolRows.push({ memberId: M.priya, date: d(offset), actionKey: key, loggedBy: U.priya });
+  }
+  protocolRows.push({ memberId: M.priya, date: d(0), actionKey: "balanced_breakfast", loggedBy: U.priya });
+  const foodRows: Insert<typeof foodLogs>[] = [
+    { memberId: M.priya, date: d(-1), meal: "breakfast", items: ["eggs", "fruit"], loggedBy: U.priya },
+    { memberId: M.priya, date: d(-1), meal: "lunch", items: ["roti", "dal", "sabzi", "curd"], loggedBy: U.priya },
+    { memberId: M.priya, date: d(-1), meal: "dinner", items: ["rice", "chicken_fish", "salad"], loggedBy: U.priya },
+    { memberId: M.priya, date: d(0), meal: "breakfast", items: ["poha", "chai_sugar"], loggedBy: U.priya },
+  ];
+
+  const accessRows: Insert<typeof doctorAccess>[] = [
+    { doctorId: "e0000000-0000-4000-8000-000000000001", familyId: ID.family, memberId: M.suresh, reason: "connected", grantedBy: U.rahul, expiresAt: at(180, "23:59"), createdAt: at(-30, "10:00") },
+    { doctorId: "e0000000-0000-4000-8000-000000000001", familyId: ID.family, memberId: M.aarav, reason: "connected", grantedBy: U.priya, expiresAt: at(180, "23:59"), createdAt: at(-30, "10:05") },
+    { doctorId: "e0000000-0000-4000-8000-000000000002", familyId: ID.family, memberId: M.suresh, reason: "booking", grantedBy: U.rahul, expiresAt: at(30, "23:59"), createdAt: at(-5, "18:00") },
+  ];
+  const noteRows: Insert<typeof doctorNotes>[] = [
+    { doctorId: "e0000000-0000-4000-8000-000000000001", memberId: M.suresh, summary: "Cough and cold for 4 days. Chest clear, no fever. Oxygen 98%.", advice: "Steam twice a day, warm fluids, rest. No antibiotics needed. Return if fever or breathlessness.", createdAt: at(-21, "10:50") },
+    { doctorId: "e0000000-0000-4000-8000-000000000001", memberId: M.aarav, summary: "Viral fever, day 2. Throat mildly red. Hydration fine.", advice: "Paracetamol syrup only if above 100°F. Plenty of fluids. CBC to rule out dengue.", followUpOn: d(1), createdAt: at(-6, "10:20") },
+  ];
+
   return {
     users: usersRows,
     family,
@@ -513,6 +665,16 @@ export function buildMockData(now: Date = new Date()): MockData {
     shareLinks: shareRows,
     triageSessions: triageRows,
     notifications: notificationRows,
+    habitLogs: habitRows,
+    carePlans: carePlanRows,
+    graceDays: graceRows,
+    pcosProfiles: pcosRows,
+    cycleLogs: cycleRows,
+    symptomLogs: symptomRows,
+    protocolLogs: protocolRows,
+    foodLogs: foodRows,
+    doctorAccess: accessRows,
+    doctorNotes: noteRows,
   };
 }
 

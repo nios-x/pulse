@@ -41,7 +41,7 @@ export function VitalDialog({
   const [memberId, setMemberId] = useState(defaultMemberId && allowedMembers.some((m) => m.id === defaultMemberId) ? defaultMemberId : allowedMembers[0]?.id ?? "");
   const [kind, setKind] = useState<VitalKind>(defaultKind);
   const [context, setContext] = useState<"fasting" | "after_meal" | "random">("fasting");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [pending, start] = useTransition();
   const meta = VITAL_META[kind];
 

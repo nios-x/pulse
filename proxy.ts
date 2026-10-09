@@ -23,5 +23,8 @@ export const config = {
     "/triage/:path*",
     "/settings/:path*",
     "/onboarding/:path*",
+    "/doctor/:path*",
+    "/progress/:path*",
+    "/pcos/:path*",
   ],
 };

@@ -84,6 +84,8 @@ export const users = pgTable("users", {
   dailyDigest: boolean("daily_digest").notNull().default(true),
   // Privacy consent captured at sign-up (DPDP-style: purpose, storage, sharing)
   consentAt: timestamp("consent_at", { withTimezone: true }),
+  // Doctors sign up with their own account and get the doctor portal instead of a family
+  isDoctor: boolean("is_doctor").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -251,6 +253,13 @@ export const doctors = pgTable("doctors", {
   rating: numeric("rating", { mode: "number" }).notNull().default(4.5),
   hours: jsonb("hours").$type<Record<string, [string, string] | null>>().notNull(),
   slotMinutes: smallint("slot_minutes").notNull().default(20),
+  // Set when the doctor has their own login (self-registered or claimed)
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }).unique(),
+  registrationNo: text("registration_no"),
+  phone: text("phone"),
+  bio: text("bio"),
+  // Families type this to connect the doctor (e.g. "DR4K7Q")
+  connectCode: varchar("connect_code", { length: 8 }).unique(),
   createdAt: createdAt(),
 });
 
@@ -385,6 +394,174 @@ export const auditLog = pgTable(
   (t) => [index("audit_family_idx").on(t.familyId, t.createdAt)]
 );
 
+// ---------- Doctor access and notes ----------
+
+/** Consent-based, time-limited access for a doctor to one family member's health data. */
+export const doctorAccess = pgTable(
+  "doctor_access",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id, { onDelete: "cascade" }),
+    familyId: uuid("family_id")
+      .notNull()
+      .references(() => families.id, { onDelete: "cascade" }),
+    memberId: memberId(),
+    reason: text("reason").notNull().default("connected"), // connected | booking
+    grantedBy: loggedBy(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("doctor_access_doctor_idx").on(t.doctorId), index("doctor_access_member_idx").on(t.memberId)]
+);
+
+export const doctorNotes = pgTable(
+  "doctor_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id, { onDelete: "cascade" }),
+    memberId: memberId(),
+    appointmentId: uuid("appointment_id").references(() => appointments.id, { onDelete: "set null" }),
+    summary: text("summary").notNull(),
+    advice: text("advice"),
+    followUpOn: date("follow_up_on", { mode: "string" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("doctor_notes_member_idx").on(t.memberId, t.createdAt)]
+);
+
+// ---------- Habits, care plans and gamification ----------
+
+export const habitKindEnum = pgEnum("habit_kind", ["water", "walk", "sleep", "produce", "mindful"]);
+export type HabitKind = (typeof habitKindEnum.enumValues)[number];
+
+/** One row per member, day and habit. Streaks, quests, XP and badges are derived from data, never stored. */
+export const habitLogs = pgTable(
+  "habit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    kind: habitKindEnum("kind").notNull(),
+    value: numeric("value", { mode: "number" }).notNull(),
+    loggedBy: loggedBy(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("habit_logs_member_date_kind_uq").on(t.memberId, t.date, t.kind)]
+);
+
+export type PlanItem = { key: string; title: string; detail: string; category: "move" | "eat" | "sleep" | "track" | "meds" | "mind"; habit?: HabitKind };
+
+/** Personalized recommendations a member chose to follow, and since when. */
+export const carePlans = pgTable(
+  "care_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    startedOn: date("started_on", { mode: "string" }).notNull(),
+    items: jsonb("items").$type<PlanItem[]>().notNull(),
+    active: boolean("active").notNull().default(true),
+    createdBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("care_plans_member_idx").on(t.memberId)]
+);
+
+/** Rest days that keep a streak alive (period, flare-up, travel, sick, mental health). */
+export const graceDays = pgTable(
+  "grace_days",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    reason: text("reason").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("grace_days_member_date_uq").on(t.memberId, t.date)]
+);
+
+// ---------- PCOS care ----------
+
+export const pcosPhenotypeEnum = pgEnum("pcos_phenotype", ["insulin_resistant", "adrenal_stress", "inflammatory", "post_pill"]);
+export type PcosPhenotype = (typeof pcosPhenotypeEnum.enumValues)[number];
+
+export type PcosPrescribed = { name: string; dose: string; frequency: string };
+
+export const pcosProfiles = pgTable("pcos_profiles", {
+  memberId: uuid("member_id")
+    .primaryKey()
+    .references(() => members.id, { onDelete: "cascade" }),
+  phenotype: pcosPhenotypeEnum("phenotype").notNull(),
+  answers: jsonb("answers").$type<Record<string, unknown>>().notNull(),
+  doctorName: text("doctor_name"),
+  diagnosedOn: date("diagnosed_on", { mode: "string" }),
+  prescribed: jsonb("prescribed").$type<PcosPrescribed[]>().notNull().default([]),
+  supplements: jsonb("supplements").$type<PcosPrescribed[]>().notNull().default([]),
+  createdAt: createdAt(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cycleLogs = pgTable(
+  "cycle_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }),
+    flow: text("flow").notNull().default("medium"), // light | medium | heavy
+    notes: text("notes"),
+    loggedBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("cycle_logs_member_start_uq").on(t.memberId, t.startDate)]
+);
+
+export const symptomLogs = pgTable(
+  "symptom_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    symptom: text("symptom").notNull(),
+    severity: smallint("severity").notNull(), // 1 mild, 2 moderate, 3 strong
+    loggedBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("symptom_logs_member_date_symptom_uq").on(t.memberId, t.date, t.symptom)]
+);
+
+/** Ticks on the daily PCOS protocol (non-medicine actions like "protein first"). */
+export const protocolLogs = pgTable(
+  "protocol_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    actionKey: text("action_key").notNull(),
+    loggedBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("protocol_logs_member_date_action_uq").on(t.memberId, t.date, t.actionKey)]
+);
+
+export const foodLogs = pgTable(
+  "food_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    meal: text("meal").notNull(), // breakfast | lunch | dinner | snack
+    items: text("items").array().notNull(),
+    loggedBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("food_logs_member_date_idx").on(t.memberId, t.date)]
+);
+
 // Row types for app code
 export type User = typeof users.$inferSelect;
 export type Family = typeof families.$inferSelect;
@@ -400,3 +577,10 @@ export type ShareLink = typeof shareLinks.$inferSelect;
 export type TriageSession = typeof triageSessions.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditEntry = typeof auditLog.$inferSelect;
+export type DoctorAccess = typeof doctorAccess.$inferSelect;
+export type DoctorNote = typeof doctorNotes.$inferSelect;
+export type HabitLog = typeof habitLogs.$inferSelect;
+export type CarePlan = typeof carePlans.$inferSelect;
+export type PcosProfile = typeof pcosProfiles.$inferSelect;
+export type CycleLog = typeof cycleLogs.$inferSelect;
+export type SymptomLog = typeof symptomLogs.$inferSelect;

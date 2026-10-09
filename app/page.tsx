@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  Flower2,
+  Sprout,
+  TrendingUp,
   BellRing,
   CalendarCheck,
   Check,
@@ -24,6 +27,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { Fruit, FruitScatter } from "@/components/fruits/fruit";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -31,10 +35,13 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = { title: { absolute: "Pulse · One place for your family's health" } };
 
 const FEATURES = [
+  { icon: Sprout, title: "Streaks, quests and rewards", body: "Daily quests, a streak that grows like a fruit tree, badges and a family leaderboard make healthy habits something to look forward to." },
+  { icon: TrendingUp, title: "See it working", body: "A personalized plan for each person and a chart that shows their health score, BP and sugar before and after they started." },
+  { icon: Flower2, title: "PCOS care", body: "A doctor-first PCOS companion: daily plan by pattern, cycle tracking without 28-day pressure, symptoms and carb-pairing tips." },
   { icon: Pill, title: "Medicine reminders", body: "A morning, afternoon and night checklist for everyone, with a taken and missed log, refill warnings and email nudges to whoever's caring." },
   { icon: HeartPulse, title: "Vitals with context", body: "BP, sugar and weight charts with the usual range shaded in, so a number means something. Always labelled in words, not just colour." },
   { icon: FileHeart, title: "Records that travel", body: "Lab reports, prescriptions and scans on one timeline, encrypted, and ready to show any doctor in seconds." },
-  { icon: CalendarCheck, title: "Doctor and video consults", body: "Book clinic visits or teleconsults by language and speciality. The family gets the confirmation and the video link." },
+  { icon: CalendarCheck, title: "Doctors on Pulse", body: "Book clinic visits or video consults. Doctors get their own portal, see what you choose to share, and leave notes you can follow." },
   { icon: Siren, title: "Emergency card", body: "Blood group, allergies, conditions, medicines and contacts on a high-contrast card with a QR code. Readable in three seconds." },
   { icon: ShieldCheck, title: "Roles for real families", body: "Admin, caregiver, member and viewer. Parents see their own profile, a caregiver sees only the people they look after." },
 ];
@@ -75,8 +82,8 @@ export default async function Landing() {
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground">
               <HeartHandshake className="size-4 text-primary" aria-hidden="true" /> For the person who looks after everyone
             </p>
-            <h1 className="text-[2.5rem] leading-[1.08] font-semibold tracking-tight sm:text-[3.25rem]">
-              One calm place for your whole family&apos;s health.
+            <h1 className="font-heading text-[2.6rem] leading-[1.05] font-extrabold tracking-tight sm:text-[3.5rem]">
+              Healthy habits the whole family <span className="text-brand">actually enjoys</span>.
             </h1>
             <p className="max-w-xl text-lg text-muted-foreground">
               Records, medicines, appointments and emergency info for parents, kids and you, with the right access for each person. Built for Indian families, readable by grandparents.
@@ -94,8 +101,18 @@ export default async function Landing() {
 
           {/* Product preview built from real UI pieces */}
           <div aria-hidden="true" className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-accent/60" />
+            <div className="absolute -inset-6 -z-10 overflow-hidden rounded-[2.5rem] bg-brand">
+              <FruitScatter />
+            </div>
             <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-pop">
+              <div className="flex items-center gap-3 rounded-2xl bg-fruit-orange-soft p-3">
+                <Fruit kind="orange" className="size-10" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">12-day streak!</p>
+                  <div className="mt-1 h-2 rounded-full bg-card"><div className="h-full w-2/3 rounded-full bg-fruit-orange" /></div>
+                </div>
+                <span className="font-heading text-sm font-extrabold">Sapling</span>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Fri, 9 Oct</p>
@@ -149,8 +166,8 @@ export default async function Landing() {
             </div>
             <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f) => (
-                <li key={f.title} className="rounded-xl border border-border bg-card p-6">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground"><f.icon className="size-5" aria-hidden="true" /></span>
+                <li key={f.title} className="rounded-2xl border border-border/70 bg-card p-6 shadow-soft">
+                  <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-soft text-accent-foreground"><f.icon className="size-5" aria-hidden="true" /></span>
                   <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
                   <p className="mt-1.5 text-[0.9375rem] text-muted-foreground">{f.body}</p>
                 </li>
@@ -180,13 +197,13 @@ export default async function Landing() {
             </div>
             <ul className="grid gap-5 sm:grid-cols-2">
               {AI.map((f) => (
-                <li key={f.title} className="rounded-xl border border-border bg-card p-6">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground"><f.icon className="size-5" aria-hidden="true" /></span>
+                <li key={f.title} className="rounded-2xl border border-border/70 bg-card p-6 shadow-soft">
+                  <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-soft text-accent-foreground"><f.icon className="size-5" aria-hidden="true" /></span>
                   <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
                   <p className="mt-1.5 text-[0.9375rem] text-muted-foreground">{f.body}</p>
                 </li>
               ))}
-              <li className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-primary-strong p-6 text-primary-foreground sm:col-span-2 dark:bg-accent dark:text-accent-foreground">
+              <li className="flex flex-col justify-between gap-4 rounded-2xl bg-brand p-6 text-brand-foreground shadow-brand sm:col-span-2">
                 <p className="flex items-center gap-2 text-sm font-medium opacity-90"><Languages className="size-4" aria-hidden="true" /> हिन्दी · मराठी · தமிழ் · বাংলা · తెలుగు · ಕನ್ನಡ · ગુજરાતી</p>
                 <p className="text-xl leading-snug font-semibold text-inherit">&ldquo;सीने में दर्द और पसीना&rdquo; is recognised as an emergency, whether it&apos;s typed, spoken or written in English.</p>
               </li>

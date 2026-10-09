@@ -6,11 +6,12 @@ import { db } from "@/db";
 import { doseLogs, medications } from "@/db/schema";
 import { runAction, type ActionResult } from "@/lib/action";
 import { getContext, requireCan, ForbiddenError } from "@/lib/context";
+import { getTodayDoses } from "@/lib/data";
 import { istDate } from "@/lib/dates";
 import { doseSchema } from "@/lib/validators";
 
 /** Mark a scheduled dose taken or skipped, or undo it. Taking a dose counts one pill down. */
-export async function logDose(input: { medicationId: string; date: string; time: string; status: "taken" | "skipped" | "undo" }): Promise<ActionResult> {
+export async function logDose(input: { medicationId: string; date: string; time: string; status: "taken" | "skipped" | "undo" }): Promise<ActionResult<{ allDone: boolean }>> {
   return runAction(async () => {
     const ctx = await getContext();
     const data = doseSchema.parse(input);
@@ -43,11 +44,17 @@ export async function logDose(input: { medicationId: string; date: string; time:
       }
     });
 
+    let allDone = false;
+    if (data.status === "taken" && data.date === istDate()) {
+      const today = await getTodayDoses([med.memberId]);
+      allDone = today.length > 0 && today.every((d) => d.state === "taken");
+    }
     revalidatePath("/", "layout");
     const label = `${med.name} ${med.strength}`.trim();
     return {
       ok: true,
-      message: data.status === "taken" ? `${label} marked as taken` : data.status === "skipped" ? `${label} marked as skipped` : `Undone: ${label}`,
+      data: { allDone },
+      message: allDone ? `${label} taken. All medicines done today! +30 XP` : data.status === "taken" ? `${label} marked as taken` : data.status === "skipped" ? `${label} marked as skipped` : `Undone: ${label}`,
     };
   });
 }

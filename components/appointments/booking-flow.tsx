@@ -183,6 +183,7 @@ export function BookingFlow({ doctors, members, defaultMemberId, today, suggeste
                 {date && time ? `${formatDay(date)} at ${formatTime(time)}` : "Choose a day and time"} · {mode === "video" ? "Video consult (link emailed)" : doctor.clinic} · ₹{doctor.fee}, pay at consult
               </p>
             </div>
+            <p className="text-sm text-muted-foreground">By booking, you agree to share this person&apos;s health summary (medicines, readings, allergies, records) with the doctor until 7 days after the visit. You can turn it off any time in Settings.</p>
             <Button size="lg" disabled={!date || !time || !memberId || booking} onClick={confirm}>
               <CalendarCheck aria-hidden="true" /> {booking ? "Booking…" : "Confirm booking"}
             </Button>

@@ -34,6 +34,7 @@ export class ForbiddenError extends Error {
 /** Loads the family, role and permissions for the signed-in user. No family yet → onboarding. */
 export const getContext = cache(async (): Promise<AppContext> => {
   const user = await requireUser();
+  if (user.isDoctor) redirect("/doctor");
   const [self] = await db.select().from(members).where(eq(members.userId, user.id)).limit(1);
   if (!self) redirect("/onboarding");
   const [family] = await db.select().from(families).where(eq(families.id, self.familyId)).limit(1);
