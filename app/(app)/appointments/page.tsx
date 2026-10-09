@@ -70,6 +70,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
             {upcoming.length === 0 ? (
               <EmptyState
                 icon={CalendarDays}
+                illustration="appointments"
                 title="No upcoming appointments"
                 description="Book a clinic visit or a video consult with a doctor near you."
                 action={<RoleGate action="appointments.manage" mode="hide"><Link href="/appointments/book" className={buttonVariants()}>Book a doctor</Link></RoleGate>}

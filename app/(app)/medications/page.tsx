@@ -135,6 +135,7 @@ export default async function MedicationsPage({ searchParams }: { searchParams: 
         {meds.length === 0 ? (
           <EmptyState
             icon={Pill}
+            illustration="medicines"
             title="No medicines yet"
             description="Add medicines by hand or scan a prescription. Pulse will remind the family at each dose time."
             action={<RoleGate action="meds.manage" mode="hide"><Link href="/medications/new" className={buttonVariants()}>Add a medicine</Link></RoleGate>}

@@ -9,6 +9,7 @@ export default function NotFound() {
       <EmptyState
         className="w-full"
         icon={Compass}
+        illustration="not-found"
         title="We couldn't find that page"
         description="The link may be old, or the page has moved."
         action={<Link href="/" className={buttonVariants()}>Go to Pulse</Link>}

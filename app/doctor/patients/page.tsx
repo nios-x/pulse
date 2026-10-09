@@ -20,7 +20,7 @@ export default async function DoctorPatients() {
     <div className="flex flex-col gap-8 animate-rise">
       <PageHeader title="Patients" description="People whose families are sharing their health summary with you right now. Access ends on its own." />
       {patients.length === 0 ? (
-        <EmptyState icon={Users} title="No patients sharing yet" description={`Give families your code ${doctor.connectCode}. When they connect or book you, their summary appears here.`} />
+        <EmptyState icon={Users} illustration="patients" title="No patients sharing yet" description={`Give families your code ${doctor.connectCode}. When they connect or book you, their summary appears here.`} />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {patients.map(({ member: m, access, familyName }) => {

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Home, KeyRound, Plus, Trash2, Users } from "lucide-react";
 import { createFamilyAction, joinFamilyAction } from "@/app/actions/onboarding";
+import { Illustration } from "@/components/brand/illustration";
 import { Field } from "@/components/form/field";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { RoleBadge } from "@/components/health/role-badge";
@@ -56,6 +57,7 @@ export function OnboardingWizard({ userName }: { userName: string }) {
   if (mode === "choose") {
     return (
       <div className="flex flex-col gap-6">
+        <Illustration name="welcome" priority className="-mb-2 max-w-64 self-center sm:max-w-80" />
         <div className="space-y-2">
           <h1 className="text-[2rem] leading-tight font-semibold">Welcome, {userName.split(" ")[0]}</h1>
           <p className="text-lg text-muted-foreground">Start a family space, or join one someone already set up.</p>

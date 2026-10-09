@@ -1,6 +1,6 @@
 # Pulse design system
 
-Calm, warm and precise: a violet brand used sparingly, leaf-green "go" buttons and lilac selections. No mascots or illustrations; progress is shown with line icons, thin bars and plain numbers. Health status stays sober and clear. Lots of whitespace, rounded-2xl cards and one clear primary action per screen.
+Calm, warm and precise: a violet brand used sparingly, leaf-green "go" buttons and lilac selections. No mascots; illustrations appear only on first-run empty states, onboarding and the 404/error pages, and progress is shown with line icons, thin bars and plain numbers. Health status stays sober and clear. Lots of whitespace, rounded-2xl cards and one clear primary action per screen.
 
 All tokens live in `app/globals.css` as CSS variables (light in `:root`, dark in `.dark`), exposed to Tailwind through `@theme inline`. Components never use hex values.
 
@@ -46,6 +46,10 @@ Headings in Plus Jakarta Sans (`font-heading`, bold/extrabold), body in Geist (v
 150–200ms colour and transform transitions (`--ease-out-soft`), a 200ms `animate-rise` on page entry and a gentle `animate-shimmer` for skeletons. The one ambient effect is `ShaderBackground` (`components/brand`), a slow white-and-sky-blue WebGL mesh behind the dashboard greeting only, with a card-coloured fade under the text, hidden in dark mode and frozen under reduced motion. No looping decorative motion; a completed quest is confirmed by a toast and the row turning to "Done".
 
 PCOS care is the exception, and it's deliberately warmer. `PcosIntro` plays a two-second welcome on each visit that folds into a flower and lets its petals go. Finished steps get short rewards from `components/game/rewards.tsx`: `pop`, a petal `burst`, a rising `floatLabel` ("+5 XP", "Morning done") and, for the big moments (whole day done, balanced plate, plan ready, rest day), `celebrate()`, a blooming-flower or moon card shown by `CelebrationHost`. Symptom logging only gets a quiet "Noted": how someone feels is never celebrated or scored. `prefers-reduced-motion` turns all of it off.
+
+## Illustrations
+
+Free IconScout illustrations (IconScout Store, flat style, no attribution required) live in `public/images/illustrations` and render through `Illustration` (`components/brand/illustration.tsx`), which keeps the name-to-file map. Their background blobs are stripped so they sit on any surface in light and dark mode. Pass `illustration` to `EmptyState` only on full-size first-run states (no records, no medicines, no appointments, no patients); compact, filtered-result and permission states keep the plain icon. They're always decorative (`alt=""`): the title and description carry the meaning.
 
 ## Accessibility
 

@@ -125,6 +125,7 @@ export function RecordTimeline({
       {filtered.length === 0 ? (
         <EmptyState
           icon={FileHeart}
+          illustration={filtering ? undefined : "records"}
           title={filtering ? "No records match these filters" : "No records yet"}
           description={filtering ? "Try another person, type or date." : "Upload lab reports, prescriptions and scans so they're ready for every doctor visit."}
           action={filtering ? <Button variant="outline" onClick={() => { setMember("all"); setType("all"); setFrom(""); setTo(""); }}>Clear filters</Button> : emptyAction}

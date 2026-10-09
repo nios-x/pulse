@@ -8,6 +8,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   return (
     <EmptyState
       icon={TriangleAlert}
+      illustration="error"
       title="Something went wrong loading this page"
       description={`Your information is safe. Please try again.${error.digest ? ` (Reference: ${error.digest})` : ""}`}
       action={<Button onClick={() => reset()}><RotateCcw aria-hidden="true" /> Try again</Button>}

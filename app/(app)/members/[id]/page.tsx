@@ -418,7 +418,7 @@ function MedicationsTab({
         </RoleGate>
       </div>
       {data.activeMeds.length === 0 ? (
-        <EmptyState icon={Pill} title="No medicines" description="Add a medicine to get dose reminders and refill alerts." />
+        <EmptyState icon={Pill} illustration="medicines" title="No medicines" description="Add a medicine to get dose reminders and refill alerts." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">{data.activeMeds.map((m) => <MedicationCard key={m.id} med={m} />)}</div>
       )}
