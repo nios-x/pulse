@@ -1,69 +1,109 @@
-# Pulse
+# Pulse · Family health, in one place
 
-Hindi-first chronic care web app for Type 2 diabetes patients in India and their family. Mobile-first PWA built from `implememtation.md`, phases 0 to 11.
+One place for a family to manage everyone's health: records, medicines, appointments and emergency info, with role-based access for each member.
 
-## Run it
+Built for three kinds of people: the tech-savvy adult who runs the family's health, elderly parents with low tech confidence, and caregivers who need limited access.
+
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · shadcn/ui on Base UI · lucide-react · Recharts (shadcn charts) · Drizzle ORM + PostgreSQL · nodemailer · Gemini (optional) · Vitest + Playwright.
+
+## Quick start
 
 ```bash
 bun install
-docker run -d --name pulse-db -e POSTGRES_USER=pulse -e POSTGRES_PASSWORD=pulse -e POSTGRES_DB=pulse -p 5433:5432 postgres:16-alpine
-cp .env.example .env          # DATABASE_URL=postgres://pulse:pulse@localhost:5433/pulse
-bun run db:migrate
-bun run db:demo-seed          # 60 days of synthetic data (or db:seed for 7 days)
-bun run dev                   # http://localhost:3000
+cp .env.example .env            # set DATABASE_URL, ENCRYPTION_KEY (openssl rand -hex 32), CRON_SECRET
+# Postgres: any local or hosted instance, e.g.
+docker run -d --name pulse-db -e POSTGRES_USER=pulse -e POSTGRES_PASSWORD=pulse -e POSTGRES_DB=pulse -p 5432:5432 postgres:16-alpine
+bun run setup                   # migrate + seed the demo family
+bun run dev                     # http://localhost:3000
 ```
 
-Demo accounts (password `demo1234`), all synthetic:
+### Demo family (synthetic data), password `demo1234`
 
-| Who | Email | Role |
-| --- | --- | --- |
-| Ramesh Sharma (Papa) | ramesh@pulse.demo | Patient (owner) |
-| Rahul Sharma (son) | rahul@pulse.demo | Caregiver |
-| Sunita Sharma (Maa) | maa@pulse.demo | Family |
+| Person | Email | Role | What to show |
+| --- | --- | --- | --- |
+| Rahul Mehta, 39 | rahul@pulse.demo | **Admin** | Everything, the View-as switcher and the permissions matrix |
+| Priya Mehta, 36 | priya@pulse.demo | **Caregiver** | Manages Papa, Maa and Aarav only |
+| Suresh Mehta, 68 | suresh@pulse.demo | **Member** | Sees only his own profile |
+| Kamala Mehta, 65 | kamala@pulse.demo | **Viewer** | Read-only everywhere |
+| Aarav Mehta, 9 | (no login) | | Managed by the family; peanut allergy on the emergency card |
 
-## Meal photos (Gemini)
+The sign-in page has one-tap buttons for each.
 
-On the Log page, **Take a photo of the meal** opens the camera (or the gallery). The photo is shrunk on the phone to at most 1024 px and sent to Gemini (`gemini-3.8-flash`, Interactions API, inline image), which names each dish, its portion and carb level as JSON checked against `foodDetectionSchema`. Matching foods from `lib/foods.ts` are ticked; the person checks them and taps Save. The dish names are saved in `meals.details` for the timeline; the photo itself is not stored. Set `GEMINI_API_KEY` to turn it on; without it only the food chips show.
+## Features
 
-## Push reminders (phase 10)
+| Area | What it does |
+| --- | --- |
+| Sign-in / sign-up | Split layout, email + password (bcrypt, hashed session tokens), consent captured at sign-up, invite code join |
+| Onboarding | 4-step stepper: create or join a family, about you, add members, set roles |
+| Family dashboard | Member cards (age, blood group, health snapshot, today's doses), alerts (missed dose, abnormal vital, refill, interaction), today's checklist, appointments, quick actions |
+| Member profile | Tabs: Overview, Vitals (BP/sugar/weight charts with normal-range bands, table view), Medicines (adherence, 14-day taken/missed log, clashes), Records, Appointments |
+| Medicines | Morning/afternoon/night checklist, add/edit with schedule presets, refill countdown, **interaction checker + generic alternatives**, "check before you buy", read aloud |
+| Appointments | List and calendar views, add manually, **doctor booking with live slots and video teleconsult links** |
+| Records | Drag-and-drop upload with preview, filter by person/type/date, timeline, **AES-256-GCM encryption at rest**, **AI prescription scanner** |
+| Emergency card | High-contrast, printable, shareable; blood group and allergies first; QR code to a public, revocable link; read aloud |
+| Symptom check | **Red-flag rules run before AI** (chest pain + sweating = emergency, stroke signs, low SpO₂, self-harm → Tele-MANAS 14416). AI can only raise the level, never lower it; diagnosis-like output is discarded. **Voice input in 10 Indian languages** |
+| Family settings | Members, roles, caregiver assignments, invites (email via nodemailer or WhatsApp), **roles × actions permissions matrix**, time-limited share links with view counts, activity log, account and email preferences, data export |
+| Notifications | In-app bell + email (nodemailer): dose-time reminders, missed-dose alerts to caregivers, abnormal readings, refills, next-day appointments, 7 am family summary |
 
-`.env` needs VAPID keys (`npx web-push generate-vapid-keys`) and a `CRON_SECRET`. Each user turns on **Medicine reminders** in the menu. Then call the reminder job every 15 minutes from Vercel Cron or any scheduler:
+### Role-based access
 
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/reminders
-```
+`lib/permissions.ts` is the single source of truth, shared by server and client. Every Server Action and route handler calls `requireCan()`; the UI uses the same function only to hide/disable controls and show a tooltip explaining why. Admins can preview any role with **View as**: the server then applies that role for real.
 
-The patient gets "Time for Metformin" at each dose time. Caregivers, and family members with the meds scope, get "Papa hasn't taken the 8 am dose" an hour later if it is still not ticked. `sent_reminders` stops duplicates, so running it more often is safe.
+| | Admin | Caregiver | Member | Viewer |
+| --- | --- | --- | --- | --- |
+| Scope | Everyone | Assigned people + self | Own profile | Everyone |
+| Default | Everything | View + update meds, doses, vitals, appointments, records | Manage own profile | Read only |
 
-## Family calls (phase 11)
+Admins change the defaults in **Family settings → Roles & permissions**. The admin row and "manage family" are locked; viewer write actions can never be enabled.
 
-Audio and video calls between members of the same family, peer to peer over WebRTC. `signaling/server.ts` relays the call setup; it is its own small Node service:
+## Notifications and cron
 
-```bash
-bun run signaling:dev            # local, port 8080, reads SIGNALING_SECRET from .env
-```
+- `GET /api/cron/reminders` every 15 min: dose reminders, missed doses, refills, appointments.
+- `GET /api/cron/daily` at 7:00 IST: morning summary per person (respecting their role's scope) + a reminder sweep.
+- Both require `Authorization: Bearer $CRON_SECRET`. `vercel.json` schedules them on Vercel (Hobby plans allow daily crons only; use any external scheduler for the 15-minute one, e.g. cron-job.org or a GitHub Action with `curl`).
+- Self-hosting: set `LOCAL_CRON=1` and the Next.js server runs the sweep every 5 minutes (`instrumentation.ts`).
+- Every notification has a dedupe key, so running jobs more often is safe.
+- Admins can trigger a run from **Settings → Account → Run reminder check now**.
 
-For production, deploy `signaling/` alone (for example with `render.yaml` on Render) with the same `SIGNALING_SECRET`, and set `NEXT_PUBLIC_SIGNALING_URL=wss://<signaling-host>` on the app. Add your own TURN server (`TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL`) so calls connect between mobile data and Wi-Fi. Render's free tier sleeps when idle, so open the app on both phones a few minutes before a demo.
+Email transport (`lib/mailer.ts`): `SMTP_URL` or `SMTP_HOST/PORT/USER/PASS` for real email; `MAIL_TRANSPORT=ethereal` for a free test inbox with preview links; otherwise emails are rendered and logged to the `email_log` table.
 
-Only logged-in users can register (signed 10-minute token), only members of the same family get a call ticket (signed, 60 seconds), and every call uses a fresh peer connection. Calls are recorded in `call_logs`.
+## AI
+
+Gemini is optional (`GEMINI_API_KEY`). Without it the prescription scanner shows a clearly labelled sample, and triage uses the safety rules only. All AI output is JSON validated with zod; the triage prompt forbids diagnoses and medicine names, and a post-filter drops anything that reads like one.
+
+## Privacy basics
+
+- Consent at sign-up and for every share link
+- Record files encrypted with AES-256-GCM (`lib/crypto.ts`); file type checked by magic bytes; served only to members whose role allows it
+- Time-limited, revocable share links with view counts
+- Session tokens stored hashed (SHA-256), httpOnly cookies
+- Audit log of role, record and sharing changes; JSON data export for admins
 
 ## Scripts
 
-| Script | What it does |
+| Script | |
 | --- | --- |
 | `bun run dev` / `build` / `start` | Next.js |
-| `bun run test` | Vitest unit tests for `lib/` (permissions, safety, adherence, insights) |
-| `bun run db:generate` / `db:migrate` / `db:studio` | drizzle-kit |
-| `bun run db:seed` | 3 users, 1 patient, 3 medicines, 7 days of logs |
-| `bun run signaling:dev` | The call signaling server on port 8080 |
-| `bun run db:demo-seed` | 60 days for the live demo: rice-dinner pattern, missed-dose streak, one high reading, two HbA1c |
+| `bun run setup` | Migrate and seed |
+| `bun run db:seed` | Reset to the demo family (dates are relative to today) |
+| `bun run test` | Unit tests (permissions, triage rules, drug interactions, schedules, vitals, crypto, slots, prescription parsing) |
+| `bun run test:e2e` | Playwright end-to-end tests against the running app (reseeds the DB) |
+| `bun run lint` / `typecheck` | ESLint / tsc |
 
 ## Where things live
 
-- `lib/permissions.ts`: roles, scopes, `can()` and `requirePermission()` (the real gate, 403 via `forbidden()`).
-- `lib/safety.ts`: fixed safety rules and all safety copy (English and Hindi). The Hindi copy is a draft for the team to review.
-- `lib/insights.ts`, `lib/adherence.ts`: plain averages and dose bookkeeping, pure and tested.
-- `lib/i18n.ts` + `messages/en.json`, `messages/hi.json`: every UI string; Hindi is the default.
-- `app/share/[token]`: the doctor summary, no login, prints on one A4 page.
+```
+app/(auth)            sign-in, sign-up (split layout)
+app/onboarding        stepper
+app/(app)/…           dashboard, members/[id], medications, appointments, records, emergency, triage, settings
+app/share/[token]     public, time-limited emergency card / doctor summary
+app/api               record files, cron jobs, data export
+app/actions           Server Actions (all permission-checked)
+components/health     MemberCard, VitalChart, DoseItem, RoleGate, StatusBadge, EmptyState, SafetyNote…
+lib/                  permissions, triage rules, drugs, meds, vitals, crypto, mailer, jobs, mock-data
+db/                   Drizzle schema, migrations, seed
+```
 
-All times are India time (`lib/dates.ts`).
+See `DESIGN.md` for the design system.
+
+> Pulse organises family health information. It is not a diagnosis. Consult a doctor. In an emergency call 112.

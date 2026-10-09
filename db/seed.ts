@@ -1,52 +1,63 @@
-// bun run db:seed — 3 users, 1 patient, 3 medicines and 7 days of synthetic logs.
-// Every demo account uses the password "demo1234".
+/**
+ * Resets the database to the demo family. Run: bun run db:seed
+ * Every row comes from lib/mock-data.ts; record files are encrypted like real uploads.
+ */
+import { sql as dsql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import { db, sql } from "./index";
+import * as s from "./schema";
+import { buildMockData, DEMO_PASSWORD } from "../lib/mock-data";
+import { encrypt } from "../lib/crypto";
 
-import { sql } from "@/db";
-import { addDays } from "@/lib/dates";
-import {
-  createDemoFamily,
-  DEMO_PASSWORD,
-  DEMO_PEOPLE,
-  fillDays,
-  makeRandom,
-  resetDemoFamily,
-  todayIst,
-} from "./seed-utils";
+export async function seed() {
+  const data = buildMockData();
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-async function main() {
-  const now = new Date();
-  const today = todayIst(now);
-  const from = addDays(today, -7);
-  const rand = makeRandom(7);
+  await db.execute(dsql`TRUNCATE TABLE audit_log, email_log, notifications, triage_sessions, share_links, records,
+    appointments, doctors, vitals, dose_logs, medications, invites, members, families, sessions, users RESTART IDENTITY CASCADE`);
 
-  await resetDemoFamily();
-  const family = await createDemoFamily(addDays(from, -1));
+  await db.insert(s.users).values(data.users.map((u) => ({ ...u, passwordHash })));
+  await db.insert(s.families).values(data.family);
+  await db.insert(s.members).values(data.members);
+  await db.insert(s.medications).values(data.medications);
+  for (let i = 0; i < data.doseLogs.length; i += 500) {
+    await db.insert(s.doseLogs).values(data.doseLogs.slice(i, i + 500));
+  }
+  await db.insert(s.vitals).values(data.vitals);
+  await db.insert(s.doctors).values(data.doctors);
+  await db.insert(s.appointments).values(data.appointments);
+  await db.insert(s.records).values(
+    data.records.map(({ file, ...r }) => {
+      const bytes = file ? Buffer.from(file.svg, "utf8") : null;
+      return { ...r, sizeBytes: bytes?.length ?? null, fileData: bytes ? encrypt(bytes) : null };
+    })
+  );
+  await db.insert(s.shareLinks).values(data.shareLinks);
+  await db.insert(s.triageSessions).values(data.triageSessions);
+  await db.insert(s.notifications).values(data.notifications);
+  await db.insert(s.auditLog).values([
+    { familyId: data.family.id!, actorUserId: data.users[0].id, action: "family.created", detail: { name: data.family.name } },
+    { familyId: data.family.id!, actorUserId: data.users[0].id, action: "share.created", detail: { member: "Suresh Mehta", scope: "summary", label: "For Dr. Farah Khan" } },
+  ]);
 
-  // Alternate rice and roti dinners, walk every other day, miss one dose.
-  const counts = await fillDays(family, {
-    from,
-    to: today,
-    now,
-    rand,
-    plan: (date) => {
-      const n = Number(date.slice(8, 10));
-      return {
-        dinner: n % 2 === 0 ? "rice" : "roti",
-        walked: n % 2 === 1,
-        missDose: (med, slot) => date === addDays(today, -2) && med === "Metformin" && slot === "20:00",
-      };
-    },
-  });
-
-  console.log("Seeded (synthetic data):", counts);
-  console.log("Sign in with any of these, password:", DEMO_PASSWORD);
-  for (const p of Object.values(DEMO_PEOPLE)) console.log(`  ${p.name.padEnd(16)} ${p.email}`);
+  return {
+    members: data.members.length,
+    medications: data.medications.length,
+    doses: data.doseLogs.length,
+    vitals: data.vitals.length,
+    records: data.records.length,
+  };
 }
 
-main()
-  .then(() => sql.end())
-  .catch(async (err) => {
-    console.error(err);
-    await sql.end();
-    process.exit(1);
-  });
+if (process.argv[1]?.endsWith("seed.ts")) {
+  seed()
+    .then((counts) => {
+      console.log("Seeded the Mehta family:", counts);
+      console.log("Sign in as rahul@pulse.demo / demo1234 (also priya@, suresh@, kamala@)");
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    })
+    .finally(() => sql.end());
+}

@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -14,42 +16,81 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { DetectedFood } from "@/lib/food-photo";
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
+/** Raw bytes. Record files are stored encrypted (AES-256-GCM), see lib/crypto.ts. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
 // ---------- Enums ----------
 
-export const roleEnum = pgEnum("role", ["owner", "caregiver", "family", "doctor"]);
-export const scopeEnum = pgEnum("scope", ["vitals", "meds", "meals", "mood"]);
-export const glucoseContextEnum = pgEnum("glucose_context", ["fasting", "after_meal", "random"]);
-export const mealSlotEnum = pgEnum("meal_slot", ["breakfast", "lunch", "dinner", "snack"]);
-export const alertSeverityEnum = pgEnum("alert_severity", ["warning", "urgent"]);
+export const roleEnum = pgEnum("role", ["admin", "caregiver", "member", "viewer"]);
+export const relationEnum = pgEnum("relation", [
+  "self",
+  "spouse",
+  "parent",
+  "child",
+  "grandparent",
+  "sibling",
+  "other",
+]);
+export const sexEnum = pgEnum("sex", ["female", "male", "other"]);
+export const doseStatusEnum = pgEnum("dose_status", ["taken", "skipped", "missed"]);
+export const vitalKindEnum = pgEnum("vital_kind", ["bp", "sugar", "weight", "pulse", "spo2", "temperature"]);
+export const appointmentModeEnum = pgEnum("appointment_mode", ["in_person", "video"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["scheduled", "completed", "cancelled"]);
+export const recordTypeEnum = pgEnum("record_type", [
+  "lab_report",
+  "prescription",
+  "scan",
+  "discharge",
+  "vaccination",
+  "other",
+]);
+export const shareScopeEnum = pgEnum("share_scope", ["emergency", "summary", "records"]);
+export const triageLevelEnum = pgEnum("triage_level", ["emergency", "urgent", "doctor", "self_care"]);
+export const severityEnum = pgEnum("severity", ["info", "warning", "urgent"]);
 
 export type Role = (typeof roleEnum.enumValues)[number];
-export type Scope = (typeof scopeEnum.enumValues)[number];
-export type GlucoseContext = (typeof glucoseContextEnum.enumValues)[number];
-export type MealSlot = (typeof mealSlotEnum.enumValues)[number];
-export type AlertSeverity = (typeof alertSeverityEnum.enumValues)[number];
+export type Relation = (typeof relationEnum.enumValues)[number];
+export type Sex = (typeof sexEnum.enumValues)[number];
+export type DoseStatus = (typeof doseStatusEnum.enumValues)[number];
+export type VitalKind = (typeof vitalKindEnum.enumValues)[number];
+export type AppointmentMode = (typeof appointmentModeEnum.enumValues)[number];
+export type AppointmentStatus = (typeof appointmentStatusEnum.enumValues)[number];
+export type RecordType = (typeof recordTypeEnum.enumValues)[number];
+export type ShareScope = (typeof shareScopeEnum.enumValues)[number];
+export type TriageLevel = (typeof triageLevelEnum.enumValues)[number];
+export type Severity = (typeof severityEnum.enumValues)[number];
+
+// JSON column shapes
+export type Allergy = { name: string; severity: "mild" | "moderate" | "severe"; reaction?: string };
+export type Condition = { name: string; since?: string };
+export type EmergencyContact = { name: string; relation: string; phone: string };
+/** role -> action -> allowed. Missing keys fall back to DEFAULT_PERMISSIONS in lib/permissions.ts. */
+export type PermissionOverrides = Partial<Record<Role, Partial<Record<string, boolean>>>>;
 
 // ---------- Login ----------
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(), // always stored lowercase
+  email: text("email").notNull().unique(), // stored lowercase
   passwordHash: text("password_hash").notNull(),
-  phone: text("phone"), // optional, used for "Call Rahul" tel: links
-  // A doctor account serves families: no health profile of its own, joins each family by invite.
-  isDoctor: boolean("is_doctor").notNull().default(false),
-  clinic: text("clinic"), // doctor only, e.g. "Verma Diabetes Clinic, Kanpur"
+  phone: text("phone"),
+  emailReminders: boolean("email_reminders").notNull().default(true),
+  dailyDigest: boolean("daily_digest").notNull().default(true),
+  // Privacy consent captured at sign-up (DPDP-style: purpose, storage, sharing)
+  consentAt: timestamp("consent_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 
 export const sessions = pgTable(
   "sessions",
   {
-    id: text("id").primaryKey(), // random 32-byte hex token, also the cookie value
+    id: text("id").primaryKey(), // sha-256 of the cookie token
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -59,54 +100,62 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId)]
 );
 
-// ---------- People and access ----------
+// ---------- Family and members ----------
 
-export const patients = pgTable("patients", {
+export const families = pgTable("families", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  birthYear: smallint("birth_year"),
   city: text("city"),
-  condition: text("condition").notNull().default("type2_diabetes"),
-  glucoseLow: smallint("glucose_low").notNull().default(70),
-  glucoseHigh: smallint("glucose_high").notNull().default(300),
-  synthetic: boolean("synthetic").notNull().default(false), // demo data, labelled in the UI
+  permissions: jsonb("permissions").$type<PermissionOverrides>().notNull().default({}),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 });
 
-const patientId = () =>
-  uuid("patient_id")
-    .notNull()
-    .references(() => patients.id, { onDelete: "cascade" });
-
-// Who entered a health row, so the app can say "Rahul logged this for Papa".
-const loggedBy = () =>
-  uuid("logged_by").references(() => users.id, { onDelete: "set null" });
-
-export const memberships = pgTable(
-  "memberships",
+/**
+ * One health profile per person in the family. A member may or may not have a login
+ * (a child usually does not). `role` is what that person can do once they sign in.
+ */
+export const members = pgTable(
+  "members",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    userId: uuid("user_id")
+    familyId: uuid("family_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    role: roleEnum("role").notNull(),
-    scopes: text("scopes").array().$type<Scope[]>().notNull().default([]),
+      .references(() => families.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    relation: relationEnum("relation").notNull().default("other"),
+    role: roleEnum("role").notNull().default("member"),
+    dateOfBirth: date("date_of_birth", { mode: "string" }),
+    sex: sexEnum("sex"),
+    bloodGroup: varchar("blood_group", { length: 4 }),
+    heightCm: smallint("height_cm"),
+    phone: text("phone"),
+    avatarTone: smallint("avatar_tone").notNull().default(1),
+    allergies: jsonb("allergies").$type<Allergy[]>().notNull().default([]),
+    conditions: jsonb("conditions").$type<Condition[]>().notNull().default([]),
+    emergencyContacts: jsonb("emergency_contacts").$type<EmergencyContact[]>().notNull().default([]),
+    // Caregivers only: which members they look after
+    assignedMemberIds: uuid("assigned_member_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    notes: text("notes"),
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex("memberships_patient_user_uq").on(t.patientId, t.userId),
-    index("memberships_user_idx").on(t.userId),
+    index("members_family_idx").on(t.familyId),
+    uniqueIndex("members_family_user_uq").on(t.familyId, t.userId),
   ]
 );
 
 export const invites = pgTable("invites", {
   id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  code: varchar("code", { length: 6 }).notNull().unique(),
+  familyId: uuid("family_id")
+    .notNull()
+    .references(() => families.id, { onDelete: "cascade" }),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  email: text("email"),
   role: roleEnum("role").notNull(),
-  scopes: text("scopes").array().$type<Scope[]>().notNull().default([]),
+  // Link the new login to an existing profile (e.g. "Papa" created by the admin)
+  memberId: uuid("member_id").references(() => members.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   usedBy: uuid("used_by").references(() => users.id, { onDelete: "set null" }),
@@ -114,390 +163,240 @@ export const invites = pgTable("invites", {
   createdAt: createdAt(),
 });
 
+const memberId = () =>
+  uuid("member_id")
+    .notNull()
+    .references(() => members.id, { onDelete: "cascade" });
+
+const loggedBy = () => uuid("logged_by").references(() => users.id, { onDelete: "set null" });
+
 // ---------- Medicines ----------
 
 export const medications = pgTable(
   "medications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    name: text("name").notNull(),
-    dose: text("dose").notNull().default(""),
-    times: text("times").array().notNull(), // "HH:MM" in India time
+    memberId: memberId(),
+    name: text("name").notNull(), // as on the strip, e.g. "Glycomet"
+    genericName: text("generic_name"), // e.g. "Metformin"
+    strength: text("strength").notNull().default(""), // "500 mg"
+    form: text("form").notNull().default("tablet"),
+    instructions: text("instructions"), // "After food"
+    times: text("times").array().notNull(), // "HH:MM", India time
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }),
+    pillsLeft: integer("pills_left"),
+    refillAt: integer("refill_at").notNull().default(7), // warn when this many pills remain
+    prescribedBy: text("prescribed_by"),
     active: boolean("active").notNull().default(true),
+    createdBy: loggedBy(),
     createdAt: createdAt(),
   },
-  (t) => [index("medications_patient_idx").on(t.patientId)]
+  (t) => [index("medications_member_idx").on(t.memberId)]
 );
 
-// A missed dose is a scheduled slot with no row here.
-export const medLogs = pgTable(
-  "med_logs",
+/** One row per scheduled dose that was dealt with. No row and time passed = missed. */
+export const doseLogs = pgTable(
+  "dose_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
     medicationId: uuid("medication_id")
       .notNull()
       .references(() => medications.id, { onDelete: "cascade" }),
-    date: date("date", { mode: "string" }).notNull(), // India date, YYYY-MM-DD
-    slot: varchar("slot", { length: 5 }).notNull(), // "08:00"
-    takenAt: timestamp("taken_at", { withTimezone: true }).notNull().defaultNow(),
-    createdAt: createdAt(),
+    memberId: memberId(),
+    date: date("date", { mode: "string" }).notNull(),
+    time: varchar("time", { length: 5 }).notNull(),
+    status: doseStatusEnum("status").notNull(),
+    loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+    loggedBy: loggedBy(),
   },
   (t) => [
-    uniqueIndex("med_logs_med_date_slot_uq").on(t.medicationId, t.date, t.slot),
-    index("med_logs_patient_date_idx").on(t.patientId, t.date),
+    uniqueIndex("dose_logs_med_date_time_uq").on(t.medicationId, t.date, t.time),
+    index("dose_logs_member_date_idx").on(t.memberId, t.date),
   ]
 );
 
-// ---------- Daily logs ----------
+// ---------- Vitals ----------
 
-export const glucoseReadings = pgTable(
-  "glucose_readings",
+export const vitals = pgTable(
+  "vitals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    mgdl: integer("mgdl").notNull(),
-    context: glucoseContextEnum("context").notNull(),
-    measuredAt: timestamp("measured_at", { withTimezone: true }).notNull().defaultNow(),
+    memberId: memberId(),
+    kind: vitalKindEnum("kind").notNull(),
+    value: numeric("value", { mode: "number" }).notNull(), // systolic for bp
+    value2: numeric("value2", { mode: "number" }), // diastolic for bp
+    context: text("context"), // sugar: fasting | after_meal | random
+    measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
     note: text("note"),
-    createdAt: createdAt(),
-  },
-  (t) => [index("glucose_patient_time_idx").on(t.patientId, t.measuredAt)]
-);
-
-export const meals = pgTable(
-  "meals",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
     loggedBy: loggedBy(),
-    slot: mealSlotEnum("slot").notNull(),
-    items: text("items").array().notNull(), // food keys from lib/foods.ts
-    // Foods recognised from a meal photo: names, portions, carb level. Null for chip-only logs.
-    details: jsonb("details").$type<DetectedFood[]>(),
-    eatenAt: timestamp("eaten_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: createdAt(),
   },
-  (t) => [index("meals_patient_time_idx").on(t.patientId, t.eatenAt)]
+  (t) => [index("vitals_member_kind_idx").on(t.memberId, t.kind, t.measuredAt)]
 );
 
-export const dailyCheckins = pgTable(
-  "daily_checkins",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    date: date("date", { mode: "string" }).notNull(),
-    walked: boolean("walked"), // derived from steps on save (steps > 0)
-    steps: integer("steps"),
-    sleep: smallint("sleep"), // old 1 bad, 2 okay, 3 good rating; no longer written
-    sleepMinutes: smallint("sleep_minutes"), // time slept last night
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("daily_checkins_patient_date_uq").on(t.patientId, t.date)]
-);
+// ---------- Doctors and appointments ----------
 
-// Weekly energy check (PHQ-2). Written by the owner only.
-export const moodChecks = pgTable(
-  "mood_checks",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    q1: smallint("q1").notNull(),
-    q2: smallint("q2").notNull(),
-    score: smallint("score").notNull(),
-    selfHarmFlag: boolean("self_harm_flag"), // null when the follow-up was not asked
-    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
-    createdAt: createdAt(),
-  },
-  (t) => [index("mood_patient_time_idx").on(t.patientId, t.checkedAt)]
-);
-
-export const labResults = pgTable(
-  "lab_results",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    kind: text("kind").notNull().default("hba1c"),
-    value: numeric("value", { precision: 5, scale: 2, mode: "number" }).notNull(),
-    takenOn: date("taken_on", { mode: "string" }).notNull(),
-    createdAt: createdAt(),
-  },
-  (t) => [index("lab_patient_idx").on(t.patientId, t.takenOn)]
-);
-
-// ---------- Safety, sharing, audit ----------
-
-export const alerts = pgTable(
-  "alerts",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    loggedBy: loggedBy(),
-    kind: text("kind").notNull(), // see lib/safety.ts
-    severity: alertSeverityEnum("severity").notNull(),
-    sourceId: uuid("source_id"), // e.g. the glucose reading that triggered it
-    ackBy: uuid("ack_by").references(() => users.id, { onDelete: "set null" }),
-    ackAt: timestamp("ack_at", { withTimezone: true }),
-    createdAt: createdAt(),
-  },
-  (t) => [index("alerts_patient_time_idx").on(t.patientId, t.createdAt)]
-);
-
-export const shareLinks = pgTable("share_links", {
+/** Directory used for booking. Weekly hours per weekday (0 = Sunday). */
+export const doctors = pgTable("doctors", {
   id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  token: varchar("token", { length: 32 }).notNull().unique(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  includeMood: boolean("include_mood").notNull().default(false),
-  revokedAt: timestamp("revoked_at", { withTimezone: true }),
-  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  specialty: text("specialty").notNull(),
+  clinic: text("clinic").notNull(),
+  city: text("city").notNull(),
+  languages: text("languages").array().notNull().default([]),
+  yearsExperience: smallint("years_experience").notNull().default(5),
+  fee: integer("fee").notNull(), // INR
+  teleconsult: boolean("teleconsult").notNull().default(true),
+  rating: numeric("rating", { mode: "number" }).notNull().default(4.5),
+  hours: jsonb("hours").$type<Record<string, [string, string] | null>>().notNull(),
+  slotMinutes: smallint("slot_minutes").notNull().default(20),
   createdAt: createdAt(),
 });
 
-// No foreign keys: the trail must outlive a deleted patient or user.
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    doctorId: uuid("doctor_id").references(() => doctors.id, { onDelete: "set null" }),
+    doctorName: text("doctor_name").notNull(),
+    specialty: text("specialty"),
+    location: text("location"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    durationMin: smallint("duration_min").notNull().default(20),
+    mode: appointmentModeEnum("mode").notNull().default("in_person"),
+    meetingUrl: text("meeting_url"),
+    reason: text("reason"),
+    notes: text("notes"),
+    status: appointmentStatusEnum("status").notNull().default("scheduled"),
+    createdBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("appointments_member_idx").on(t.memberId, t.startsAt),
+    index("appointments_doctor_idx").on(t.doctorId, t.startsAt),
+  ]
+);
+
+// ---------- Records ----------
+
+export const records = pgTable(
+  "records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memberId: memberId(),
+    type: recordTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    recordDate: date("record_date", { mode: "string" }).notNull(),
+    provider: text("provider"), // lab, hospital or doctor
+    notes: text("notes"),
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    sizeBytes: integer("size_bytes"),
+    // iv (12) | auth tag (16) | ciphertext. Never stored in plain text.
+    fileData: bytea("file_data"),
+    extracted: jsonb("extracted").$type<Record<string, unknown>>(),
+    createdBy: loggedBy(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("records_member_idx").on(t.memberId, t.recordDate)]
+);
+
+// ---------- Sharing, triage, notifications, audit ----------
+
+export const shareLinks = pgTable("share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id")
+    .notNull()
+    .references(() => families.id, { onDelete: "cascade" }),
+  memberId: memberId(),
+  token: varchar("token", { length: 48 }).notNull().unique(),
+  scope: shareScopeEnum("scope").notNull(),
+  label: text("label"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  viewCount: integer("view_count").notNull().default(0),
+  lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+  createdBy: loggedBy(),
+  createdAt: createdAt(),
+});
+
+export const triageSessions = pgTable("triage_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  memberId: memberId(),
+  symptoms: text("symptoms").notNull(),
+  answers: jsonb("answers").$type<Record<string, unknown>>().notNull().default({}),
+  level: triageLevelEnum("level").notNull(),
+  redFlags: text("red_flags").array().notNull().default([]),
+  source: text("source").notNull(), // "rules" | "ai" | "rules+ai"
+  language: varchar("language", { length: 8 }).notNull().default("en"),
+  result: jsonb("result").$type<Record<string, unknown>>().notNull(),
+  createdBy: loggedBy(),
+  createdAt: createdAt(),
+});
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    familyId: uuid("family_id")
+      .notNull()
+      .references(() => families.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id").references(() => members.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // missed_dose | abnormal_vital | refill | appointment | interaction | digest
+    severity: severityEnum("severity").notNull().default("info"),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    href: text("href"),
+    // Stops the cron job from sending the same reminder twice
+    dedupeKey: text("dedupe_key").unique(),
+    emailedAt: timestamp("emailed_at", { withTimezone: true }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notifications_family_idx").on(t.familyId, t.createdAt)]
+);
+
+export const emailLog = pgTable("email_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  to: text("to").notNull(),
+  subject: text("subject").notNull(),
+  kind: text("kind").notNull(),
+  status: text("status").notNull(), // sent | logged | failed
+  messageId: text("message_id"),
+  previewUrl: text("preview_url"),
+  error: text("error"),
+  createdAt: createdAt(),
+});
+
 export const auditLog = pgTable(
   "audit_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    actorUserId: uuid("actor_user_id"),
-    patientId: uuid("patient_id"),
+    familyId: uuid("family_id")
+      .notNull()
+      .references(() => families.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
     action: text("action").notNull(),
     detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
   },
-  (t) => [index("audit_patient_idx").on(t.patientId, t.createdAt)]
+  (t) => [index("audit_family_idx").on(t.familyId, t.createdAt)]
 );
 
-// ---------- Push reminders (phase 10) ----------
-
-export const pushSubscriptions = pgTable(
-  "push_subscriptions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    endpoint: text("endpoint").notNull().unique(),
-    keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
-    locale: varchar("locale", { length: 2 }).notNull().default("en"), // language for the notification text
-    createdAt: createdAt(),
-  },
-  (t) => [index("push_user_idx").on(t.userId)]
-);
-
-// One row per reminder sent, so a re-run of the cron never pushes twice.
-export const sentReminders = pgTable(
-  "sent_reminders",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    medicationId: uuid("medication_id")
-      .notNull()
-      .references(() => medications.id, { onDelete: "cascade" }),
-    date: date("date", { mode: "string" }).notNull(),
-    slot: varchar("slot", { length: 5 }).notNull(),
-    kind: text("kind").$type<"due" | "late">().notNull(),
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("sent_reminders_uq").on(t.medicationId, t.date, t.slot, t.kind)]
-);
-
-// ---------- Family calls (phase 11) ----------
-
-export const callLogs = pgTable(
-  "call_logs",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    patientId: patientId(),
-    callerId: uuid("caller_id").references(() => users.id, { onDelete: "set null" }),
-    calleeId: uuid("callee_id").references(() => users.id, { onDelete: "set null" }),
-    video: boolean("video").notNull().default(false),
-    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-    endedAt: timestamp("ended_at", { withTimezone: true }),
-    createdAt: createdAt(),
-  },
-  (t) => [index("call_logs_patient_idx").on(t.patientId, t.startedAt)]
-);
-
-// ---------- PCOS ----------
-
-export const pcosPhenotypeEnum = pgEnum('pcos_phenotype', [
-  'insulin_resistant', 'adrenal_stress', 'inflammatory', 'post_pill',
-]);
-export const symptomCategoryEnum = pgEnum('symptom_category', [
-  'acne_jawline', 'acne_forehead', 'hirsutism_face', 'hirsutism_body',
-  'hair_thinning', 'acanthosis', 'bloating', 'fatigue', 'brain_fog',
-  'anxiety', 'low_mood', 'irritability', 'craving_sugar', 'craving_carb',
-  'pelvic_pain', 'headache', 'insomnia', 'night_waking',
-]);
-export const movementTypeEnum = pgEnum('movement_type', [
-  'walk_10min', 'walk_30min', 'strength_training', 'yoga_gentle',
-  'yoga_restorative', 'pilates', 'swimming', 'dance', 'stretching',
-  'breathing_exercise', 'rest_day',
-]);
-export const graceDayReasonEnum = pgEnum('grace_day_reason', [
-  'flare_up', 'period', 'travel', 'mental_health', 'sick',
-]);
-
-export const pcosPrescriptions = pgTable("pcos_prescriptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  doctorName: text("doctor_name").notNull(),
-  clinicName: text("clinic_name"),
-  prescriptionDate: date("prescription_date", { mode: "string" }).notNull(),
-  diagnosis: text("diagnosis").notNull().default("pcos"),
-  phenotype: pcosPhenotypeEnum("phenotype"),
-  medications: jsonb("medications").$type<{name: string, dose: string, frequency: string, notes?: string}[]>(),
-  supplements: jsonb("supplements").$type<{name: string, dose: string, frequency: string}[]>(),
-  dietaryAdvice: text("dietary_advice"),
-  exerciseAdvice: text("exercise_advice"),
-  followUpDate: date("follow_up_date", { mode: "string" }),
-  notes: text("notes"),
-  active: boolean("active").default(true),
-  createdAt: createdAt(),
-});
-
-export const pcosProfiles = pgTable("pcos_profiles", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }).unique(),
-  prescriptionId: uuid("prescription_id").references(() => pcosPrescriptions.id),
-  phenotype: pcosPhenotypeEnum("phenotype").notNull(),
-  onboardingAnswers: jsonb("onboarding_answers"),
-  cycleBaselineLength: smallint("cycle_baseline_length"),
-  diagnosisDate: date("diagnosis_date", { mode: "string" }),
-  createdAt: createdAt(),
-});
-
-export const cycleLogs = pgTable("cycle_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  startDate: date("start_date", { mode: "string" }).notNull(),
-  endDate: date("end_date", { mode: "string" }),
-  flowIntensity: smallint("flow_intensity"),
-  symptoms: text("symptoms").array(),
-  notes: text("notes"),
-  createdAt: createdAt(),
-}, (t) => [
-  index("cycle_logs_patient_start_idx").on(t.patientId, t.startDate)
-]);
-
-export const symptomLogs = pgTable("symptom_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  category: symptomCategoryEnum("category").notNull(),
-  severity: smallint("severity").notNull(),
-  notes: text("notes"),
-  createdAt: createdAt(),
-}, (t) => [
-  index("symptom_logs_patient_date_idx").on(t.patientId, t.date)
-]);
-
-export const pcosFoodLogs = pgTable("pcos_food_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  slot: mealSlotEnum("slot").notNull(),
-  items: text("items").array().notNull(),
-  preMealAction: text("pre_meal_action"),
-  postMealAction: text("post_meal_action"),
-  eatenAt: timestamp("eaten_at", { withTimezone: true }),
-  createdAt: createdAt(),
-}, (t) => [
-  index("pcos_food_logs_patient_date_idx").on(t.patientId, t.date)
-]);
-
-export const supplementLogs = pgTable("supplement_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  supplement: text("supplement").notNull(),
-  takenAt: timestamp("taken_at", { withTimezone: true }),
-  createdAt: createdAt(),
-}, (t) => [
-  uniqueIndex("supplement_logs_patient_date_supp_uq").on(t.patientId, t.date, t.supplement)
-]);
-
-export const movementLogs = pgTable("movement_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  type: movementTypeEnum("type").notNull(),
-  durationMinutes: smallint("duration_minutes"),
-  createdAt: createdAt(),
-}, (t) => [
-  index("movement_logs_patient_date_idx").on(t.patientId, t.date)
-]);
-
-export const sleepLogs = pgTable("sleep_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  bedtime: varchar("bedtime", { length: 5 }),
-  wakeTime: varchar("wake_time", { length: 5 }),
-  quality: smallint("quality"),
-  createdAt: createdAt(),
-}, (t) => [
-  uniqueIndex("sleep_logs_patient_date_uq").on(t.patientId, t.date)
-]);
-
-export const graceDays = pgTable("grace_days", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  reason: graceDayReasonEnum("reason").notNull(),
-  createdAt: createdAt(),
-}, (t) => [
-  uniqueIndex("grace_days_patient_date_uq").on(t.patientId, t.date)
-]);
-
-export const pcosDailyActions = pgTable("pcos_daily_actions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: patientId(),
-  loggedBy: loggedBy(),
-  date: date("date", { mode: "string" }).notNull(),
-  actionKey: text("action_key").notNull(),
-  completed: boolean("completed").default(false),
-  createdAt: createdAt(),
-}, (t) => [
-  index("pcos_daily_actions_patient_date_idx").on(t.patientId, t.date)
-]);
-
+// Row types for app code
 export type User = typeof users.$inferSelect;
-export type Patient = typeof patients.$inferSelect;
-export type Membership = typeof memberships.$inferSelect;
+export type Family = typeof families.$inferSelect;
+export type Member = typeof members.$inferSelect;
+export type Invite = typeof invites.$inferSelect;
 export type Medication = typeof medications.$inferSelect;
-export type MedLog = typeof medLogs.$inferSelect;
-export type GlucoseReading = typeof glucoseReadings.$inferSelect;
-export type Meal = typeof meals.$inferSelect;
-export type DailyCheckin = typeof dailyCheckins.$inferSelect;
-
-export type PcosPhenotype = (typeof pcosPhenotypeEnum.enumValues)[number];
-export type SymptomCategory = (typeof symptomCategoryEnum.enumValues)[number];
-export type MovementType = (typeof movementTypeEnum.enumValues)[number];
-export type GraceDayReason = (typeof graceDayReasonEnum.enumValues)[number];
-
-export type PcosPrescription = typeof pcosPrescriptions.$inferSelect;
-export type PcosProfile = typeof pcosProfiles.$inferSelect;
-export type CycleLog = typeof cycleLogs.$inferSelect;
-export type SymptomLog = typeof symptomLogs.$inferSelect;
-export type PcosFoodLog = typeof pcosFoodLogs.$inferSelect;
-export type SupplementLog = typeof supplementLogs.$inferSelect;
-export type MovementLog = typeof movementLogs.$inferSelect;
-export type SleepLog = typeof sleepLogs.$inferSelect;
-export type GraceDay = typeof graceDays.$inferSelect;
-export type PcosDailyAction = typeof pcosDailyActions.$inferSelect;
+export type DoseLog = typeof doseLogs.$inferSelect;
+export type Vital = typeof vitals.$inferSelect;
+export type Doctor = typeof doctors.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;
+export type HealthRecord = typeof records.$inferSelect;
+export type ShareLink = typeof shareLinks.$inferSelect;
+export type TriageSession = typeof triageSessions.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type AuditEntry = typeof auditLog.$inferSelect;

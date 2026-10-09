@@ -1,1 +1,0 @@
-ALTER TABLE "daily_checkins" ADD COLUMN "steps" integer;

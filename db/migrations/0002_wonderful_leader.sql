@@ -1,1 +1,0 @@
-ALTER TABLE "patients" ADD COLUMN "synthetic" boolean DEFAULT false NOT NULL;

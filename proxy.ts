@@ -2,16 +2,26 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/session-cookie";
 
 /**
- * Optimistic gate for the signed-in screens: no session cookie, straight to sign-in,
- * before any page code runs. Only reads the cookie; requireUser() in the (app) layout
- * still checks the session against the database on every render.
+ * Optimistic gate: no session cookie on an app screen → sign-in, before page code runs.
+ * The (app) layout still validates the session against the database on every render.
  */
 export function proxy(request: NextRequest) {
   if (request.cookies.get(SESSION_COOKIE)?.value) return NextResponse.next();
-  return NextResponse.redirect(new URL("/auth", request.url));
+  const url = new URL("/sign-in", request.url);
+  url.searchParams.set("next", request.nextUrl.pathname);
+  return NextResponse.redirect(url);
 }
 
-// Everything under app/(app). Sign-in, join links, doctor share links and the API stay public.
 export const config = {
-  matcher: ["/home", "/help", "/p/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/members/:path*",
+    "/medications/:path*",
+    "/appointments/:path*",
+    "/records/:path*",
+    "/emergency/:path*",
+    "/triage/:path*",
+    "/settings/:path*",
+    "/onboarding/:path*",
+  ],
 };

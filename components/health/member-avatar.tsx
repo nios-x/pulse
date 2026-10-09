@@ -1,36 +1,48 @@
 import { cn } from "@/lib/utils";
 
-const INKS = ["bg-avatar-1", "bg-avatar-2", "bg-avatar-3", "bg-avatar-4", "bg-avatar-5"] as const;
+const TONES = [
+  "bg-avatar-1",
+  "bg-avatar-2",
+  "bg-avatar-3",
+  "bg-avatar-4",
+  "bg-avatar-5",
+  "bg-avatar-6",
+] as const;
 
-/** Initials on a muted ink that never reads as a health status. */
+const SIZES = {
+  sm: "size-8 text-xs",
+  md: "size-11 text-sm",
+  lg: "size-14 text-lg",
+  xl: "size-20 text-2xl",
+} as const;
+
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
 export function MemberAvatar({
   name,
-  index,
+  tone = 1,
   size = "md",
   className,
 }: {
   name: string;
-  index: number;
-  size?: "sm" | "md" | "lg" | "xl";
+  tone?: number;
+  size?: keyof typeof SIZES;
   className?: string;
 }) {
-  const parts = name.trim().split(/\s+/);
-  const initials = (parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "");
   return (
     <span
-      aria-hidden
+      aria-hidden="true"
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight text-white uppercase",
-        "shadow-[inset_0_1px_0_oklch(1_0_0/0.3),0_6px_14px_-8px_oklch(0.3_0.04_200/0.6)]",
-        INKS[index % INKS.length],
-        size === "sm" && "size-8 text-xs",
-        size === "md" && "size-11 text-sm",
-        size === "lg" && "size-14 text-lg",
-        size === "xl" && "size-20 text-2xl",
+        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold tracking-wide text-avatar-ink select-none",
+        TONES[(Math.max(1, tone) - 1) % TONES.length],
+        SIZES[size],
         className
       )}
     >
-      {initials}
+      {initials(name)}
     </span>
   );
 }
