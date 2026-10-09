@@ -13,12 +13,12 @@ import {
   UserPlus,
   Video,
 } from "lucide-react";
+import { ShaderBackground } from "@/components/brand/shader-background";
 import { AlertList } from "@/components/health/alert-list";
 import { DoseList } from "@/components/health/dose-list";
 import { EmptyState } from "@/components/health/empty-state";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { MemberCard } from "@/components/health/member-card";
-import { Fruit, FruitScatter, type FruitKind } from "@/components/fruits/fruit";
 import { LevelProgress } from "@/components/game/level-card";
 import { QuestList } from "@/components/game/quest-list";
 import { StreakFlame } from "@/components/game/streak-flame";
@@ -45,6 +45,7 @@ export default async function DashboardPage() {
   const taken = data.todayDoses.filter((d) => d.state === "taken").length;
   const attention = data.alerts.filter((a) => a.severity !== "info").length;
   const today = istDate();
+  const toGo = Math.max(0, STREAK_QUESTS - game.today.done.length);
 
   const summary =
     attention > 0
@@ -53,34 +54,35 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 animate-rise">
-      <section className="relative overflow-hidden rounded-3xl bg-brand text-brand-foreground shadow-brand">
-        <div aria-hidden="true" className="absolute -top-24 -right-20 size-80 rounded-full bg-brand-foreground/10" />
-        <div aria-hidden="true" className="absolute -bottom-32 left-1/4 size-72 rounded-full bg-brand-foreground/5" />
-        <FruitScatter className="hidden opacity-95 md:block" />
-        <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
+      <section className="relative isolate overflow-hidden rounded-3xl border border-border bg-surface dark:bg-card">
+        {/* Light mesh behind the greeting; dark mode keeps the plain card. */}
+        <ShaderBackground className="absolute inset-0 -z-10 dark:hidden" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-card/85 via-card/45 to-transparent dark:hidden" />
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
           <div className="flex flex-col gap-4">
-            <p className="text-sm font-semibold opacity-85">{formatDay(data.now.instant)}</p>
-            <h1 className="font-heading text-[2rem] leading-[1.1] font-extrabold text-inherit sm:text-[2.5rem]">
+            <h1 className="font-heading text-[2rem] leading-[1.1] font-bold sm:text-[2.5rem]">
               {greeting()}, {firstName(ctx.user.name)}
             </h1>
-            <p className="max-w-xl text-base opacity-90">{summary}</p>
+            <p className="max-w-xl text-base text-muted-foreground">
+              {formatDay(data.now.instant)} · {summary}
+            </p>
             <div className="flex flex-wrap items-center gap-3">
               <VitalDialog members={ctx.visibleMembers.map((m) => ({ id: m.id, name: m.name }))} defaultMemberId={ctx.self.id} />
-              <Link href="/progress" className={cn(buttonVariants({ variant: "outline" }), "border-brand-foreground/30 bg-brand-foreground/10 text-brand-foreground hover:bg-brand-foreground/20")}>
+              <Link href="/progress" className={cn(buttonVariants({ variant: "outline" }), "bg-card")}>
                 Today&apos;s quests <ArrowRight aria-hidden="true" />
               </Link>
             </div>
           </div>
-          <div className="flex flex-col gap-4 rounded-2xl bg-brand-foreground/10 p-5 backdrop-blur-sm">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card/90 p-5 shadow-soft">
             <div className="flex items-center justify-between gap-3">
-              <StreakFlame days={game.streak} onDark />
-              <span className="rounded-full bg-brand-foreground/15 px-3 py-1 text-sm font-semibold tabular">
-                {game.today.done.length}/{game.today.available.length} quests
+              <StreakFlame days={game.streak} />
+              <span className="text-sm text-muted-foreground tabular">
+                {game.today.done.length} of {game.today.available.length} quests today
               </span>
             </div>
-            <LevelProgress level={game.level} xp={game.xp} onDark />
-            <p className="text-sm opacity-85">
-              {game.today.complete ? "Streak secured for today. Keep going for bonus XP!" : `Finish ${Math.max(0, STREAK_QUESTS - game.today.done.length)} more quest${STREAK_QUESTS - game.today.done.length === 1 ? "" : "s"} to keep your streak.`}
+            <LevelProgress level={game.level} xp={game.xp} />
+            <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+              {game.today.complete ? "Today counts towards your streak." : `${toGo} more quest${toGo === 1 ? "" : "s"} today to keep your streak.`}
             </p>
           </div>
         </div>
@@ -88,11 +90,11 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-xl font-bold">Your quests today</CardTitle>
-          <CardDescription>Tap + as you go. Every quest adds a fruit to your basket.</CardDescription>
+          <CardTitle className="font-heading text-xl font-semibold">Your quests today</CardTitle>
+          <CardDescription>Tap + as you go. Any {STREAK_QUESTS} keep the streak going.</CardDescription>
           <CardAction>
             <Link href="/progress" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Rewards <ArrowRight aria-hidden="true" />
+              Progress <ArrowRight aria-hidden="true" />
             </Link>
           </CardAction>
         </CardHeader>
@@ -260,19 +262,18 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-2.5">
               {[
-                { href: "/triage", label: "Check symptoms", hint: "AI with safety rules", icon: Stethoscope, fruit: "apple" as FruitKind, tint: "bg-fruit-berry-soft" },
-                { href: "/emergency", label: "Emergency card", hint: "Readable in 3 sec", icon: Siren, fruit: "strawberry" as FruitKind, tint: "bg-fruit-orange-soft" },
-                { href: "/records/scan", label: "Scan prescription", hint: "Add meds from a photo", icon: FileScan, fruit: "lemon" as FruitKind, tint: "bg-fruit-lemon-soft" },
-                { href: "/appointments/book", label: "Book a doctor", hint: "Clinic or video", icon: CalendarPlus, fruit: "grapes" as FruitKind, tint: "bg-fruit-grape-soft" },
+                { href: "/triage", label: "Check symptoms", hint: "AI with safety rules", icon: Stethoscope },
+                { href: "/emergency", label: "Emergency card", hint: "Readable in 3 sec", icon: Siren },
+                { href: "/records/scan", label: "Scan prescription", hint: "Add meds from a photo", icon: FileScan },
+                { href: "/appointments/book", label: "Book a doctor", hint: "Clinic or video", icon: CalendarPlus },
               ].map((q) => (
                 <Link
                   key={q.href}
                   href={q.href}
-                  className={cn("group relative flex min-h-28 flex-col justify-between gap-3 overflow-hidden rounded-2xl p-3.5 transition-transform duration-150 hover:-translate-y-0.5", q.tint)}
+                  className="flex min-h-28 flex-col justify-between gap-3 rounded-xl border border-border p-3.5 transition-colors duration-150 hover:border-border-strong hover:bg-surface"
                 >
-                  <Fruit kind={q.fruit} className="absolute -right-2 -bottom-2 size-14 opacity-90 transition-transform duration-200 group-hover:scale-110" />
-                  <q.icon className="size-5 text-foreground" aria-hidden="true" />
-                  <span className="relative">
+                  <q.icon className="size-5 text-accent-foreground" aria-hidden="true" />
+                  <span>
                     <span className="block text-[0.9375rem] font-semibold leading-snug">{q.label}</span>
                     <span className="block text-sm text-muted-foreground">{q.hint}</span>
                   </span>

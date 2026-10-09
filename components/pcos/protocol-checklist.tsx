@@ -4,7 +4,6 @@ import { useOptimistic, useTransition } from "react";
 import { Check, Moon, Sun, Sunrise, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { toggleProtocol } from "@/app/actions/pcos";
-import { celebrate } from "@/components/game/confetti";
 import { useAccess } from "@/components/providers/access-provider";
 import type { ProtocolAction } from "@/lib/pcos";
 import { cn } from "@/lib/utils";
@@ -21,10 +20,7 @@ export function ProtocolChecklist({ memberId, actions, done }: { memberId: strin
       setState({ key, on });
       const res = await toggleProtocol({ memberId, actionKey: key, done: on });
       if (!res.ok) toast.error(res.error);
-      else if (on && state.length + 1 === actions.length) {
-        celebrate();
-        toast.success("Every action done today! Your body thanks you.");
-      }
+      else if (on && state.length + 1 === actions.length) toast.success("Every action done for today.");
     });
   return (
     <div className="flex flex-col gap-5">

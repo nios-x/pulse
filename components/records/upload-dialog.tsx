@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { ACCEPTED_UPLOADS, MAX_UPLOAD_BYTES } from "@/lib/files";
+import { ACCEPTED_UPLOADS, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/files";
 import { RECORD_TYPE_LABEL } from "@/lib/labels";
 
 export function UploadDialog({ members, defaultOpen, defaultMemberId, today }: { members: { id: string; name: string }[]; defaultOpen?: boolean; defaultMemberId?: string; today: string }) {
@@ -28,7 +28,7 @@ export function UploadDialog({ members, defaultOpen, defaultMemberId, today }: {
 
   const pick = (f: File | null) => {
     setErrors((e) => ({ ...e, file: "" }));
-    if (f && f.size > MAX_UPLOAD_BYTES) { setErrors((e) => ({ ...e, file: "That file is larger than 8 MB." })); return; }
+    if (f && f.size > MAX_UPLOAD_BYTES) { setErrors((e) => ({ ...e, file: `That file is larger than ${MAX_UPLOAD_MB} MB.` })); return; }
     if (f && !ACCEPTED_UPLOADS.split(",").includes(f.type)) { setErrors((e) => ({ ...e, file: "Please choose a PDF, JPG, PNG or WebP file." })); return; }
     setFile(f);
     if (f && !title) setTitle(f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").slice(0, 80));

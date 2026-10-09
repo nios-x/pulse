@@ -4,12 +4,14 @@ import { cn } from "@/lib/utils";
 export function StreakFlame({ days, className, size = "md", onDark = false }: { days: number; className?: string; size?: "sm" | "md" | "lg"; onDark?: boolean }) {
   const lit = days > 0;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 font-heading font-extrabold tabular", size === "lg" ? "text-3xl" : size === "sm" ? "text-sm" : "text-lg", className)}>
-      <span className={cn("relative flex items-center justify-center rounded-full", size === "lg" ? "size-12" : size === "sm" ? "size-7" : "size-9", lit ? "bg-fruit-orange-soft" : onDark ? "bg-brand-foreground/15" : "bg-muted")}>
-        <Flame className={cn(size === "lg" ? "size-7" : size === "sm" ? "size-4" : "size-5", lit ? "fill-fruit-orange text-fruit-orange motion-safe:animate-flicker" : "text-muted-foreground")} aria-hidden="true" />
-      </span>
+    <span className={cn("inline-flex items-baseline gap-1.5 font-heading font-semibold tabular", size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-lg", className)}>
+      <Flame
+        className={cn("self-center", size === "lg" ? "size-5" : "size-4", lit ? (onDark ? "text-brand-foreground" : "text-brand") : onDark ? "text-brand-foreground/60" : "text-muted-foreground")}
+        strokeWidth={2.25}
+        aria-hidden="true"
+      />
       {days}
-      <span className={cn("font-sans font-medium", size === "lg" ? "text-base" : "text-sm", onDark ? "opacity-85" : "text-muted-foreground")}>day{days === 1 ? "" : "s"}</span>
+      <span className={cn("font-sans text-sm font-normal", onDark ? "text-brand-foreground/80" : "text-muted-foreground")}>day{days === 1 ? "" : "s"}</span>
     </span>
   );
 }

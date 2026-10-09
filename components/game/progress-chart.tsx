@@ -11,9 +11,9 @@ type Metric = "score" | "bpSys" | "sugarFasting" | "weight" | "adherence";
 
 const METRICS: { key: Metric; label: string; unit: string; better: "up" | "down"; color: string }[] = [
   { key: "score", label: "Health score", unit: "/100", better: "up", color: "var(--brand)" },
-  { key: "adherence", label: "Medicines taken", unit: "%", better: "up", color: "var(--fruit-orange)" },
-  { key: "bpSys", label: "BP (top number)", unit: "mmHg", better: "down", color: "var(--fruit-berry)" },
-  { key: "sugarFasting", label: "Fasting sugar", unit: "mg/dL", better: "down", color: "var(--fruit-grape)" },
+  { key: "adherence", label: "Medicines taken", unit: "%", better: "up", color: "var(--chart-2)" },
+  { key: "bpSys", label: "BP (top number)", unit: "mmHg", better: "down", color: "var(--chart-3)" },
+  { key: "sugarFasting", label: "Fasting sugar", unit: "mg/dL", better: "down", color: "var(--chart-4)" },
   { key: "weight", label: "Weight", unit: "kg", better: "down", color: "var(--primary)" },
 ];
 
@@ -74,7 +74,7 @@ export function ProgressChart({ weeks, planLabel, improvements }: { weeks: WeekS
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
-            {planWeek && lastLabel && <ReferenceArea x1={planWeek} x2={lastLabel} fill="var(--fruit-leaf-soft)" fillOpacity={0.6} stroke="none" />}
+            {planWeek && lastLabel && <ReferenceArea x1={planWeek} x2={lastLabel} fill="var(--chart-band)" stroke="none" />}
             {planWeek && (
               <ReferenceLine
                 x={planWeek}

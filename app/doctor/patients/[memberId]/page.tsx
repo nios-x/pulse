@@ -99,7 +99,7 @@ export default async function PatientChart({ params, searchParams }: { params: P
             <CardHeader><CardTitle className="font-heading text-lg font-bold">Conditions</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {member.conditions.map((c) => <p key={c.name} className="text-[0.9375rem]">{c.name}{c.since && <span className="text-muted-foreground"> · since {c.since}</span>}</p>)}
-              {pcos[0] && <p className="rounded-xl bg-fruit-grape-soft px-3 py-2 text-sm">PCOS: {PHENOTYPE_INFO[pcos[0].phenotype].title} pattern (self-reported quiz)</p>}
+              {pcos[0] && <p className="rounded-xl bg-accent px-3 py-2 text-sm">PCOS: {PHENOTYPE_INFO[pcos[0].phenotype].title} pattern (self-reported quiz)</p>}
               {member.notes && <p className="text-sm text-muted-foreground">{member.notes}</p>}
             </CardContent>
           </Card>

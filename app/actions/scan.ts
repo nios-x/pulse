@@ -12,7 +12,7 @@ import { encrypt } from "@/lib/crypto";
 import { getContext, requireCan } from "@/lib/context";
 import { addDays, istDate } from "@/lib/dates";
 import { checkInteractions } from "@/lib/drugs";
-import { detectFileType, MAX_UPLOAD_BYTES } from "@/lib/files";
+import { detectFileType, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/files";
 import { firstName } from "@/lib/labels";
 import { PRESCRIPTION_PROMPT, prescriptionSchema, SAMPLE_SCAN, toReviewed, type ReviewedMedicine } from "@/lib/prescription";
 
@@ -28,7 +28,7 @@ export type ScanResult = {
 async function readImage(form: FormData) {
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo of the prescription first." } as const;
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "That photo is larger than 8 MB. Try a smaller one." } as const;
+  if (file.size > MAX_UPLOAD_BYTES) return { error: `That photo is larger than ${MAX_UPLOAD_MB} MB. Try a smaller one.` } as const;
   const bytes = Buffer.from(await file.arrayBuffer());
   const mimeType = detectFileType(bytes);
   if (!mimeType) return { error: "Please use a JPG, PNG, WebP photo or a PDF." } as const;

@@ -7,17 +7,8 @@ import { startCarePlan } from "@/app/actions/habits";
 import { RoleGate } from "@/components/health/role-gate";
 import { Button } from "@/components/ui/button";
 import type { PlanItem } from "@/db/schema";
-import { cn } from "@/lib/utils";
 
 const ICON: Record<PlanItem["category"], typeof Pill> = { move: Footprints, eat: Salad, sleep: Moon, track: Activity, meds: Pill, mind: Brain };
-const TINT: Record<PlanItem["category"], string> = {
-  move: "bg-fruit-leaf-soft text-success",
-  eat: "bg-fruit-orange-soft text-warning",
-  sleep: "bg-fruit-lemon-soft text-warning",
-  track: "bg-fruit-berry-soft text-danger",
-  meds: "bg-fruit-grape-soft text-accent-foreground",
-  mind: "bg-fruit-water-soft text-info",
-};
 
 export function PlanCard({ memberId, firstName, plan, suggestions }: { memberId: string; firstName: string; plan: { startedOn: string; items: PlanItem[]; days: number } | null; suggestions: PlanItem[] }) {
   const [pending, start] = useTransition();
@@ -36,8 +27,8 @@ export function PlanCard({ memberId, firstName, plan, suggestions }: { memberId:
         {items.map((i) => {
           const Icon = ICON[i.category];
           return (
-            <li key={i.key} className="flex gap-3 rounded-2xl border border-border bg-card p-3.5">
-              <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", TINT[i.category])}>
+            <li key={i.key} className="flex gap-3 rounded-xl border border-border p-3.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent-foreground">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
               <span className="min-w-0">

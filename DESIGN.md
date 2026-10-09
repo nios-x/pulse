@@ -1,6 +1,6 @@
 # Pulse design system
 
-Fresh, friendly and a little playful, like a good grocery app: a violet brand, leaf-green "go" buttons, lilac selections and fruit illustrations that reward progress. Health status stays sober and clear. Lots of whitespace, rounded-2xl cards and one clear primary action per screen.
+Calm, warm and precise: a violet brand used sparingly, leaf-green "go" buttons and lilac selections. No mascots or illustrations; progress is shown with line icons, thin bars and plain numbers. Health status stays sober and clear. Lots of whitespace, rounded-2xl cards and one clear primary action per screen.
 
 All tokens live in `app/globals.css` as CSS variables (light in `:root`, dark in `.dark`), exposed to Tailwind through `@theme inline`. Components never use hex values.
 
@@ -15,7 +15,6 @@ All tokens live in `app/globals.css` as CSS variables (light in `:root`, dark in
 | `brand` / `brand-soft` | violet `oklch(0.52 0.22 292)` | Heroes, auth panel, progress, secondary CTAs (`variant="brand"`) |
 | `primary` / `primary-strong` | leaf green `oklch(0.52 0.145 155)` | The screen's one "go" action (`shadow-go`), focus ring |
 | `accent` | lilac | Selected chips, active nav |
-| `fruit-orange/berry/lemon/leaf/grape/water` (+ `-soft`) | | Quest tiles, fruit illustrations, badges. Decoration only, never status |
 | `success` `warning` `danger` (+ `-soft`, `-border`) | green / amber / red | **Health status only**, always with an icon and a word |
 | `info` | slate blue | Neutral information ("Due now") |
 | `role-admin/caregiver/member/viewer` (+ `-soft`) | | Role badges, always with the role name |
@@ -44,7 +43,7 @@ Headings in Plus Jakarta Sans (`font-heading`, bold/extrabold), body in Geist (v
 
 ## Motion
 
-150–200ms colour and transform transitions (`--ease-out-soft`), a 200ms `animate-rise` on page entry, a gentle `animate-shimmer` for skeletons, `animate-pop` when a quest completes, `animate-float` for fruit and `animate-flicker` for the streak flame. Confetti fires on completed quests and all-doses-taken. `prefers-reduced-motion` turns all of it off.
+150–200ms colour and transform transitions (`--ease-out-soft`), a 200ms `animate-rise` on page entry and a gentle `animate-shimmer` for skeletons. The one ambient effect is `ShaderBackground` (`components/brand`), a slow white-and-sky-blue WebGL mesh behind the dashboard greeting only, with a card-coloured fade under the text, hidden in dark mode and frozen under reduced motion. No confetti or other looping decorative motion; a completed quest is confirmed by a toast and the row turning to "Done". `prefers-reduced-motion` turns all of it off.
 
 ## Accessibility
 
@@ -62,9 +61,12 @@ Headings in Plus Jakarta Sans (`font-heading`, bold/extrabold), body in Geist (v
 
 Every screen has a loading skeleton (`loading.tsx`), an empty state with a primary action, an error boundary (`error.tsx`) and success toasts (sonner). Layout is a sidebar on desktop and a bottom tab bar on mobile.
 
-## Gamification (`components/game`, `components/fruits`)
+## Gamification (`components/game`)
 
-- `Fruit` draws token-coloured SVG fruit (apple, orange, strawberry, watermelon, grapes, lemon, pear, cherry) and level plants (seed → harvest).
-- `QuestList`: one row per quest with a fruit tile, progress bar and big +/− buttons (44px+). Completion is shown with a check and the word, not colour alone.
-- `StreakFlame`, `LevelProgress`, `WeekStrip`, `BadgeGrid`, `FruitBasket`, `GraceDayButton`, `ProgressChart`, `PlanCard`.
+Kept quiet: the tool should feel like a health record, not a game.
+
+- `QUEST_ICON` (`quest-icons.ts`) maps each goal to one lucide line icon (pill, heart-pulse, glass, footprints, salad, moon, brain). No illustrations or emoji.
+- `QuestList`: a divided list, one row per quest with a neutral icon tile, a thin brand progress bar and 40px +/− buttons. Completion shows a check and the word "Done", not colour alone.
+- `StreakFlame` (static brand flame + number), `LevelProgress` (name, level, thin bar, XP to next), `WeekStrip` (rounded squares, brand fill for streak days, dashed for rest days), `BadgeGrid` (icon list, lock when not earned), `HabitTally` (90-day counts per goal), `GraceDayButton`, `ProgressChart`, `PlanCard`.
+- Levels have plain names (Starter → Exemplary). Badge colour is brand only.
 - Everything is derived from real logs (`lib/gamification.ts`), so there's no points ledger to drift. Copy stays kind: missed days are never shamed, rest days protect a streak.

@@ -1,25 +1,36 @@
-import { Lock } from "lucide-react";
-import { Fruit, type FruitKind } from "@/components/fruits/fruit";
-import { BADGES, type BadgeKey, type FruitKey } from "@/lib/gamification";
+import { CalendarCheck, CalendarRange, Flag, Flame, Flower2, Footprints, GlassWater, HeartPulse, Lock, Moon, Pill, Salad, Trophy, type LucideIcon } from "lucide-react";
+import { QUEST_ICON } from "@/components/game/quest-icons";
+import { BADGES, type BadgeKey, type TallyKey } from "@/lib/gamification";
 import { cn } from "@/lib/utils";
+
+const BADGE_ICON: Record<BadgeKey, LucideIcon> = {
+  first_steps: Flag,
+  streak_3: Flame,
+  streak_7: CalendarCheck,
+  streak_14: CalendarRange,
+  streak_30: Trophy,
+  perfect_week: Pill,
+  hydration_hero: GlassWater,
+  walker: Footprints,
+  vitals_pro: HeartPulse,
+  green_plate: Salad,
+  sleep_champ: Moon,
+  pcos_warrior: Flower2,
+};
 
 export function BadgeGrid({ badges }: { badges: { key: BadgeKey; earned: boolean }[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
       {badges.map((b) => {
         const def = BADGES[b.key];
+        const Icon = BADGE_ICON[b.key];
         return (
-          <li key={b.key} className={cn("flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-colors", b.earned ? "border-fruit-orange/40 bg-fruit-orange-soft/60" : "border-dashed border-border-strong bg-surface/60")}>
-            <span className={cn("relative flex size-16 items-center justify-center rounded-full", b.earned ? "bg-card shadow-soft" : "bg-muted")}>
-              <Fruit kind={def.fruit as FruitKind} className={cn("size-11", !b.earned && "opacity-30 grayscale")} />
-              {!b.earned && (
-                <span className="absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
-                  <Lock className="size-3.5" aria-hidden="true" />
-                </span>
-              )}
+          <li key={b.key} className="flex items-center gap-3 border-b border-border py-3">
+            <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", b.earned ? "bg-brand-soft text-brand" : "border border-dashed border-border-strong text-muted-foreground")}>
+              {b.earned ? <Icon className="size-5" aria-hidden="true" /> : <Lock className="size-4" aria-hidden="true" />}
             </span>
-            <span>
-              <span className="block text-[0.9375rem] font-semibold">{def.title}</span>
+            <span className="min-w-0">
+              <span className={cn("block text-[0.9375rem] font-medium", !b.earned && "text-muted-foreground")}>{def.title}</span>
               <span className="block text-sm text-muted-foreground">{def.description}</span>
             </span>
             <span className="sr-only">{b.earned ? "Earned" : "Locked"}</span>
@@ -30,19 +41,34 @@ export function BadgeGrid({ badges }: { badges: { key: BadgeKey; earned: boolean
   );
 }
 
-const FRUIT_LABEL: Record<FruitKey, string> = { orange: "Oranges", strawberry: "Strawberries", watermelon: "Watermelons", apple: "Apples", grapes: "Grapes", lemon: "Lemons", pear: "Pears" };
-const FRUIT_FROM: Record<FruitKey, string> = { orange: "medicines", strawberry: "readings", watermelon: "water", apple: "walks", grapes: "fruit & veg", lemon: "sleep", pear: "mindful minutes" };
+const TALLY_LABEL: Record<TallyKey, string> = {
+  meds: "All medicines",
+  vital: "Readings",
+  water: "Water goal",
+  walk: "Walks",
+  produce: "Fruit & veg",
+  sleep: "Good sleep",
+  mindful: "Mindful minutes",
+};
 
-export function FruitBasket({ basket }: { basket: Record<FruitKey, number> }) {
+export function HabitTally({ tally }: { tally: Record<TallyKey, number> }) {
   return (
-    <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
-      {(Object.keys(basket) as FruitKey[]).map((k) => (
-        <li key={k} className="flex flex-col items-center gap-1 rounded-2xl bg-surface px-2 py-3 text-center">
-          <Fruit kind={k} className="size-10" />
-          <span className="font-heading text-xl font-extrabold tabular">{basket[k]}</span>
-          <span className="text-xs leading-tight text-muted-foreground">{FRUIT_LABEL[k]}<br />from {FRUIT_FROM[k]}</span>
-        </li>
-      ))}
-    </ul>
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">
+      {(Object.keys(tally) as TallyKey[]).map((k) => {
+        const Icon = QUEST_ICON[k];
+        return (
+          <div key={k} className="flex flex-col gap-1">
+            <dt className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
+              {TALLY_LABEL[k]}
+            </dt>
+            <dd className="font-heading text-2xl font-semibold tabular">
+              {tally[k]}
+              <span className="ml-1 font-sans text-sm font-normal text-muted-foreground">day{tally[k] === 1 ? "" : "s"}</span>
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }

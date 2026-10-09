@@ -48,7 +48,7 @@ export function CycleChart({ cycles }: { cycles: { start: string; length: number
   return (
     <>
       <p className="sr-only">Cycle lengths: {cycles.map((c) => `${c.length} days from ${d(c.start)}`).join(", ")}.</p>
-      <ChartContainer config={{ length: { label: "Cycle length", color: "var(--fruit-grape)" } }} className="aspect-auto h-56 w-full" aria-hidden="true">
+      <ChartContainer config={{ length: { label: "Cycle length", color: "var(--chart-1)" } }} className="aspect-auto h-56 w-full" aria-hidden="true">
         <BarChart data={cycles.map((c) => ({ label: d(c.start), length: c.length }))} margin={{ top: 8, right: 8, left: -14, bottom: 0 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
           <ReferenceArea y1={21} y2={35} fill="var(--chart-band)" stroke="none" />

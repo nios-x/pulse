@@ -4,7 +4,6 @@ import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { CalendarHeart, Flower2, HeartHandshake, Pill, Settings2, TriangleAlert } from "lucide-react";
 import { db } from "@/db";
 import { cycleLogs, foodLogs, graceDays, pcosProfiles, protocolLogs, symptomLogs } from "@/db/schema";
-import { Fruit } from "@/components/fruits/fruit";
 import { GraceDayButton } from "@/components/game/grace-day-button";
 import { EmptyState } from "@/components/health/empty-state";
 import { RoleGate } from "@/components/health/role-gate";
@@ -52,18 +51,15 @@ export default async function PcosPage({ searchParams }: { searchParams: Promise
   const base = `/pcos?member=${member.id}`;
 
   const header = (
-    <section className="relative overflow-hidden rounded-3xl bg-fruit-grape-soft p-6 sm:p-8">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-4 -bottom-6 flex gap-1 opacity-90">
-        <Fruit kind="strawberry" className="size-16 rotate-12" />
-        <Fruit kind="pear" className="size-20 -rotate-6" />
-        <Fruit kind="cherry" className="size-14" />
-      </div>
-      <div className="relative max-w-2xl space-y-2">
-        <p className="flex items-center gap-2 text-sm font-semibold text-accent-foreground"><Flower2 className="size-4" aria-hidden="true" /> PCOS care companion</p>
-        <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold sm:text-[2.25rem]">{profile ? `${first}'s rhythm, gently tracked` : `Set up PCOS care for ${first}`}</h1>
+    <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <div className="flex max-w-2xl gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand" aria-hidden="true"><Flower2 className="size-5" /></span>
+        <div className="space-y-1.5">
+        <h1 className="font-heading text-[1.625rem] leading-tight font-semibold sm:text-[2rem]">{profile ? `${first}'s rhythm, gently tracked` : `Set up PCOS care for ${first}`}</h1>
         <p className="text-base text-muted-foreground">
           {profile ? `${PHENOTYPE_INFO[profile.phenotype].title} pattern · following Dr. ${profile.doctorName?.replace(/^Dr\.?\s*/i, "")}'s plan` : "Works alongside the doctor's prescription with a small daily plan, cycle tracking without 28-day pressure, and symptom and food logs."}
         </p>
+        </div>
       </div>
     </section>
   );
@@ -145,7 +141,7 @@ async function TodayTab({ memberId, profile, today }: { memberId: string; profil
               {perDay.map((p) => (
                 <li key={p.d} className="flex flex-1 flex-col items-center gap-1.5">
                   <span className="flex h-20 w-full items-end overflow-hidden rounded-lg bg-muted">
-                    <span className="w-full rounded-lg bg-fruit-grape" style={{ height: `${Math.min(100, (p.n / actions.length) * 100)}%` }} />
+                    <span className="w-full rounded-lg bg-brand" style={{ height: `${Math.min(100, (p.n / actions.length) * 100)}%` }} />
                   </span>
                   <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("en-IN", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${p.d}T00:00:00Z`))}</span>
                   <span className="sr-only">{p.n} actions</span>
@@ -171,7 +167,7 @@ async function CycleTab({ memberId, today }: { memberId: string; today: string }
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div className="flex flex-col gap-6">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 font-heading text-xl font-bold"><CalendarHeart className="size-5 text-fruit-berry" aria-hidden="true" /> Your rhythm</CardTitle><CardDescription>No predictions, no &ldquo;late&rdquo; alarms. Just your own pattern to share with your doctor.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 font-heading text-xl font-bold"><CalendarHeart className="size-5 text-accent-foreground" aria-hidden="true" /> Your rhythm</CardTitle><CardDescription>No predictions, no &ldquo;late&rdquo; alarms. Just your own pattern to share with your doctor.</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-4">
             <dl className="grid grid-cols-3 gap-3">
               {[
@@ -216,7 +212,7 @@ async function SymptomsTab({ memberId, today }: { memberId: string; today: strin
                     <th scope="row" className="pr-3 text-left text-sm font-medium whitespace-nowrap">{s.label}</th>
                     {days.map((d) => {
                       const v = rows.find((r) => r.symptom === s.key && r.date === d)?.severity ?? 0;
-                      return <td key={d} title={`${formatDate(d)}: ${["none", "mild", "moderate", "strong"][v]}`} className={cn("h-6 w-6 rounded-md", v === 0 ? "bg-muted" : v === 1 ? "bg-fruit-grape/30" : v === 2 ? "bg-fruit-grape/60" : "bg-fruit-grape")}><span className="sr-only">{formatDate(d)} {["none", "mild", "moderate", "strong"][v]}</span></td>;
+                      return <td key={d} title={`${formatDate(d)}: ${["none", "mild", "moderate", "strong"][v]}`} className={cn("h-6 w-6 rounded-md", v === 0 ? "bg-muted" : v === 1 ? "bg-brand/30" : v === 2 ? "bg-brand/60" : "bg-brand")}><span className="sr-only">{formatDate(d)} {["none", "mild", "moderate", "strong"][v]}</span></td>;
                     })}
                   </tr>
                 ))}

@@ -36,20 +36,20 @@ describe("quests and streaks", () => {
 
   it("awards XP and levels", () => {
     expect(dayXp(good(T))).toBe(30 + 15 + 15 + 2 * 5);
-    expect(levelFor(0).name).toBe("Seed");
-    expect(levelFor(450)).toMatchObject({ name: "Seedling", level: 3 });
+    expect(levelFor(0).name).toBe("Starter");
+    expect(levelFor(450)).toMatchObject({ name: "Steady", level: 3 });
     expect(levelFor(450).xpToNext).toBe(350);
     expect(levelFor(99999).next).toBeNull();
   });
 
-  it("summarizes badges and the fruit basket", () => {
+  it("summarizes badges and the tally", () => {
     const list = Array.from({ length: 10 }, (_, i) => good(addDays(T, -i)));
     const s = summarize(list, T);
     expect(s.streak).toBe(10);
     expect(s.badges.find((b) => b.key === "streak_7")?.earned).toBe(true);
     expect(s.badges.find((b) => b.key === "streak_14")?.earned).toBe(false);
     expect(s.badges.find((b) => b.key === "perfect_week")?.earned).toBe(true);
-    expect(s.basket.orange).toBe(10);
+    expect(s.tally.meds).toBe(10);
     expect(s.last7).toHaveLength(7);
     expect(s.weeklyXp).toBe(7 * dayXp(good(T)));
   });

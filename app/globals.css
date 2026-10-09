@@ -56,21 +56,6 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-foreground: var(--brand-foreground);
 
-  /* Fruit accents for gamification and illustrations */
-  --color-fruit-orange: var(--fruit-orange);
-  --color-fruit-orange-soft: var(--fruit-orange-soft);
-  --color-fruit-berry: var(--fruit-berry);
-  --color-fruit-berry-soft: var(--fruit-berry-soft);
-  --color-fruit-lemon: var(--fruit-lemon);
-  --color-fruit-lemon-soft: var(--fruit-lemon-soft);
-  --color-fruit-leaf: var(--fruit-leaf);
-  --color-fruit-leaf-soft: var(--fruit-leaf-soft);
-  --color-fruit-grape: var(--fruit-grape);
-  --color-fruit-grape-soft: var(--fruit-grape-soft);
-  --color-fruit-water: var(--fruit-water);
-  --color-fruit-water-soft: var(--fruit-water-soft);
-  --color-fruit-ink: var(--fruit-ink);
-
   /* Health status (never colour alone) */
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -136,28 +121,12 @@
   --shadow-brand: 0 12px 28px -12px oklch(0.5 0.22 292 / 0.6);
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
-
+  --success: lab(40.091% -40.5235 15.86);
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
   @keyframes shimmer {
     0% { opacity: 1; }
     50% { opacity: 0.55; }
     100% { opacity: 1; }
-  }
-  --animate-pop: pop 320ms var(--ease-out-soft) both;
-  @keyframes pop {
-    0% { transform: scale(0.85); opacity: 0; }
-    60% { transform: scale(1.06); opacity: 1; }
-    100% { transform: scale(1); }
-  }
-  --animate-float: float 6s ease-in-out infinite;
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-6px) rotate(3deg); }
-  }
-  --animate-flicker: flicker 1.8s ease-in-out infinite;
-  @keyframes flicker {
-    0%, 100% { transform: scale(1) rotate(-2deg); }
-    50% { transform: scale(1.08) rotate(2deg); }
   }
   --animate-rise: rise 200ms var(--ease-out-soft) both;
   @keyframes rise {
@@ -165,6 +134,7 @@
     to { opacity: 1; transform: none; }
   }
 }
+
 
 :root {
   --radius: 0.75rem;
@@ -203,20 +173,6 @@
   --border-strong: oklch(0.86 0.025 295);
   --input: oklch(0.86 0.03 295);
   --ring: oklch(0.55 0.2 292);
-
-  --fruit-orange: oklch(0.74 0.17 55);
-  --fruit-orange-soft: oklch(0.96 0.045 70);
-  --fruit-berry: oklch(0.62 0.21 15);
-  --fruit-berry-soft: oklch(0.955 0.03 15);
-  --fruit-lemon: oklch(0.87 0.16 98);
-  --fruit-lemon-soft: oklch(0.975 0.05 100);
-  --fruit-leaf: oklch(0.72 0.17 145);
-  --fruit-leaf-soft: oklch(0.955 0.05 145);
-  --fruit-grape: oklch(0.55 0.19 300);
-  --fruit-grape-soft: oklch(0.955 0.035 300);
-  --fruit-water: oklch(0.65 0.13 235);
-  --fruit-water-soft: oklch(0.955 0.03 230);
-  --fruit-ink: oklch(0.3 0.06 290);
 
   --success: oklch(0.47 0.12 160);
   --success-soft: oklch(0.955 0.035 152);
@@ -321,13 +277,6 @@
   --avatar-5: oklch(0.43 0.06 135);
   --avatar-6: oklch(0.42 0.06 290);
   --avatar-ink: oklch(0.96 0.008 85);
-  --fruit-orange-soft: oklch(0.32 0.06 60);
-  --fruit-berry-soft: oklch(0.31 0.06 15);
-  --fruit-lemon-soft: oklch(0.32 0.06 100);
-  --fruit-leaf-soft: oklch(0.3 0.06 145);
-  --fruit-grape-soft: oklch(0.31 0.07 300);
-  --fruit-water-soft: oklch(0.3 0.05 235);
-  --fruit-ink: oklch(0.95 0.01 300);
   --emergency: oklch(0.5 0.18 27);
   --chart-1: oklch(0.72 0.17 295);
   --chart-2: oklch(0.78 0.15 155);
@@ -412,4 +361,13 @@
   body {
     background: white !important;
   }
+}
+.bg-primary {
+    background-color: lab(69 -58.87 29.29);
+}
+.text-success {
+    color: lab(59.77% -51.37 22.7);
+  }
+.border-success {
+    border-color: lab(59.77% -51.37 22.7);
 }

@@ -67,7 +67,7 @@ Admins change the defaults in **Family settings → Roles & permissions**. The a
 
 - `GET /api/cron/reminders` every 15 min: dose reminders, missed doses, refills, appointments.
 - `GET /api/cron/daily` at 7:00 IST: morning summary per person (respecting their role's scope) + a reminder sweep.
-- Both require `Authorization: Bearer $CRON_SECRET`. `vercel.json` schedules them on Vercel (Hobby plans allow daily crons only; use any external scheduler for the 15-minute one, e.g. cron-job.org or a GitHub Action with `curl`).
+- Both require `Authorization: Bearer $CRON_SECRET`. On Vercel, `vercel.json` schedules the daily one (Hobby plans allow daily crons only) and `.github/workflows/reminders.yml` calls the 15-minute one.
 - Self-hosting: set `LOCAL_CRON=1` and the Next.js server runs the sweep every 5 minutes (`instrumentation.ts`).
 - Every notification has a dedupe key, so running jobs more often is safe.
 - Admins can trigger a run from **Settings → Account → Run reminder check now**.
@@ -77,6 +77,19 @@ Email transport (`lib/mailer.ts`): `SMTP_URL` or `SMTP_HOST/PORT/USER/PASS` for 
 ## AI
 
 Gemini is optional (`GEMINI_API_KEY`). Without it the prescription scanner shows a clearly labelled sample, and triage uses the safety rules only. All AI output is JSON validated with zod; the triage prompt forbids diagnoses and medicine names, and a post-filter drops anything that reads like one.
+
+## Deploying to Vercel
+
+1. **Database.** Create a Postgres database, e.g. Neon from the Vercel Marketplace (it sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for you), or Supabase (use the pooled URL on port 6543 as `DATABASE_URL` and the direct URL as `DATABASE_URL_UNPOOLED`).
+2. **Import the repo** in Vercel. `vercel.json` sets the install and build commands; each build runs `db:migrate` before `next build`.
+3. **Environment variables** (Project → Settings → Environment Variables):
+   - Required: `DATABASE_URL`, `ENCRYPTION_KEY` (`openssl rand -hex 32`; keep it forever, since changing it makes stored files unreadable), `CRON_SECRET` (any long random string)
+   - Recommended: `APP_URL` (your production URL, used in emails, QR codes and share links; falls back to the Vercel production domain), `MAIL_FROM` plus `SMTP_URL` or `SMTP_HOST/PORT/USER/PASS`
+   - Optional: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS`
+4. **Reminders.** In GitHub → Settings → Secrets and variables → Actions, add `APP_URL` and `CRON_SECRET` (same value as in Vercel). The "Reminder sweep" workflow then runs every 15 minutes; trigger it once by hand from the Actions tab to check it works.
+5. **Demo data (optional).** Run `bun run db:seed` locally with `DATABASE_URL` pointing at the production database. Skip this for real use.
+
+Limits to know about: uploads are capped at 4 MB because Vercel rejects request bodies over 4.5 MB (large phone photos are shrunk in the browser first). `LOCAL_CRON` does nothing on Vercel. GitHub pauses scheduled workflows after 60 days without repository activity.
 
 ## Privacy basics
 

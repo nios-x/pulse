@@ -8,7 +8,14 @@ import { z } from "zod";
  * Without GEMINI_API_KEY the features fall back to clearly labelled non-AI behaviour.
  */
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+// Free-tier quotas are per model, so when the primary is rate-limited or overloaded we try these in order.
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-3.5-flash,gemini-3.5-flash-lite")
+  .split(",")
+  .map((m) => m.trim())
+  .filter((m) => m && m !== MODEL);
 const TIMEOUT_MS = 30_000;
+
+const isBusy = (message: string) => /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded/i.test(message);
 
 export function aiEnabled(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
@@ -31,9 +38,24 @@ export async function geminiJson<T extends z.ZodType>(
   opts: { system?: string; temperature?: number } = {}
 ): Promise<{ ok: true; data: z.infer<T> } | { ok: false; reason: "disabled" | "busy" | "invalid" | "error" }> {
   if (!aiEnabled()) return { ok: false, reason: "disabled" };
+  let result: { ok: false; reason: "busy" | "invalid" | "error" } = { ok: false, reason: "busy" };
+  for (const model of [MODEL, ...FALLBACK_MODELS]) {
+    const res = await callModel(model, parts, schema, opts);
+    if (res.ok || res.reason !== "busy") return res;
+    result = res;
+  }
+  return result;
+}
+
+async function callModel<T extends z.ZodType>(
+  model: string,
+  parts: AiPart[],
+  schema: T,
+  opts: { system?: string; temperature?: number }
+): Promise<{ ok: true; data: z.infer<T> } | { ok: false; reason: "busy" | "invalid" | "error" }> {
   try {
     const res = await gemini().models.generateContent({
-      model: MODEL,
+      model,
       contents: [
         {
           role: "user",
@@ -52,7 +74,7 @@ export async function geminiJson<T extends z.ZodType>(
     return parsed.success ? { ok: true, data: parsed.data } : { ok: false, reason: "invalid" };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[ai] call failed:", message.slice(0, 300));
-    return { ok: false, reason: /429|503|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded/i.test(message) ? "busy" : "error" };
+    console.error(`[ai] ${model} failed:`, message.slice(0, 300));
+    return { ok: false, reason: isBusy(message) ? "busy" : "error" };
   }
 }

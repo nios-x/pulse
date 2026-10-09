@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { FileText, ImageUp, X } from "lucide-react";
+import { MAX_UPLOAD_MB, shrinkImage } from "@/lib/files";
 import { fileSize } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +12,7 @@ export function Dropzone({
   onFile,
   accept,
   title = "Drag a file here, or choose one",
-  hint = "PDF, JPG, PNG or WebP · up to 8 MB",
+  hint = `PDF, JPG, PNG or WebP · up to ${MAX_UPLOAD_MB} MB`,
   capture,
   error,
 }: {
@@ -25,6 +26,15 @@ export function Dropzone({
 }) {
   const id = useId();
   const [over, setOver] = useState(false);
+  const [shrinking, setShrinking] = useState(false);
+  const pick = async (f: File) => {
+    setShrinking(true);
+    try {
+      onFile(await shrinkImage(f));
+    } finally {
+      setShrinking(false);
+    }
+  };
   const preview = useMemo(() => (file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
@@ -56,7 +66,7 @@ export function Dropzone({
           e.preventDefault();
           setOver(false);
           const f = e.dataTransfer.files?.[0];
-          if (f) onFile(f);
+          if (f) void pick(f);
         }}
         className={cn(
           "flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
@@ -66,7 +76,7 @@ export function Dropzone({
         <span className="flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
           <ImageUp className="size-6" aria-hidden="true" />
         </span>
-        <span className="text-base font-semibold">{over ? "Drop to add" : title}</span>
+        <span className="text-base font-semibold">{shrinking ? "Preparing photo…" : over ? "Drop to add" : title}</span>
         <span className="text-sm text-muted-foreground">{hint}</span>
         <input
           id={id}
@@ -74,7 +84,11 @@ export function Dropzone({
           accept={accept}
           capture={capture ? "environment" : undefined}
           className="sr-only"
-          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void pick(f);
+            else onFile(null);
+          }}
           aria-describedby={error ? `${id}-err` : undefined}
         />
       </label>

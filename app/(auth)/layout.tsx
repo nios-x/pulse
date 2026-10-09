@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BellRing, Check, Droplet, HeartPulse, Lock, ShieldCheck, Siren, Users } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { FruitScatter } from "@/components/fruits/fruit";
 import { getCurrentUser } from "@/lib/auth";
 
 const POINTS = [
@@ -28,14 +27,9 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       </div>
 
       <aside className="relative hidden overflow-hidden bg-brand text-brand-foreground lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <FruitScatter className="opacity-95" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "22px 22px" }} />
-        <div aria-hidden="true" className="pointer-events-none absolute -top-40 -right-40 size-[34rem] rounded-full bg-brand-foreground/10" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -left-24 size-[28rem] rounded-full bg-brand-foreground/5" />
-
         <div className="relative max-w-lg space-y-4">
-          <p className="text-sm font-medium tracking-wide uppercase opacity-80">For the person who looks after everyone</p>
-          <h2 className="font-heading text-[2.6rem] leading-[1.08] font-extrabold text-inherit">One place for your whole family&apos;s health.</h2>
+          <h2 className="font-heading text-[2.6rem] leading-[1.08] font-bold text-balance text-inherit">One place for your whole family&apos;s health.</h2>
+          <p className="text-lg text-brand-foreground/85">For the person who looks after everyone.</p>
         </div>
 
         {/* Product preview, built from real UI pieces */}

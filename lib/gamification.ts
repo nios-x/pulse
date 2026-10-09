@@ -2,24 +2,22 @@ import type { HabitKind } from "@/db/schema";
 import { addDays } from "@/lib/dates";
 
 /**
- * Streaks, quests, XP, levels, badges and the fruit basket.
+ * Streaks, quests, XP, levels, badges and a 90-day tally.
  * Everything is derived from what people actually logged (doses, readings, habits),
  * so it can't drift out of sync and needs no separate ledger.
  */
 
-export type FruitKey = "orange" | "strawberry" | "watermelon" | "apple" | "grapes" | "lemon" | "pear";
-
 export type QuestKey = "meds" | "vital" | "water" | "walk" | "produce" | "sleep";
 
-export type QuestDef = { key: QuestKey; title: string; short: string; goal: number; unit: string; xp: number; fruit: FruitKey; habit?: HabitKind };
+export type QuestDef = { key: QuestKey; title: string; short: string; goal: number; unit: string; xp: number; habit?: HabitKind };
 
 export const QUESTS: QuestDef[] = [
-  { key: "meds", title: "Take all of today's medicines", short: "Medicines", goal: 1, unit: "", xp: 30, fruit: "orange" },
-  { key: "vital", title: "Record a reading", short: "Reading", goal: 1, unit: "", xp: 15, fruit: "strawberry" },
-  { key: "water", title: "Drink 8 glasses of water", short: "Water", goal: 8, unit: "glasses", xp: 15, fruit: "watermelon", habit: "water" },
-  { key: "walk", title: "Walk for 30 minutes", short: "Walk", goal: 30, unit: "min", xp: 20, fruit: "apple", habit: "walk" },
-  { key: "produce", title: "Eat 5 servings of fruit & veg", short: "Fruit & veg", goal: 5, unit: "servings", xp: 15, fruit: "grapes", habit: "produce" },
-  { key: "sleep", title: "Sleep 7 hours or more", short: "Sleep", goal: 7, unit: "hours", xp: 15, fruit: "lemon", habit: "sleep" },
+  { key: "meds", title: "Take all of today's medicines", short: "Medicines", goal: 1, unit: "", xp: 30 },
+  { key: "vital", title: "Record a reading", short: "Reading", goal: 1, unit: "", xp: 15 },
+  { key: "water", title: "Drink 8 glasses of water", short: "Water", goal: 8, unit: "glasses", xp: 15, habit: "water" },
+  { key: "walk", title: "Walk for 30 minutes", short: "Walk", goal: 30, unit: "min", xp: 20, habit: "walk" },
+  { key: "produce", title: "Eat 5 servings of fruit & veg", short: "Fruit & veg", goal: 5, unit: "servings", xp: 15, habit: "produce" },
+  { key: "sleep", title: "Sleep 7 hours or more", short: "Sleep", goal: 7, unit: "hours", xp: 15, habit: "sleep" },
 ];
 
 export const HABIT_GOAL: Record<HabitKind, number> = { water: 8, walk: 30, sleep: 7, produce: 5, mindful: 10 };
@@ -108,14 +106,14 @@ export function bestStreak(days: Map<string, DayActivity>): number {
 }
 
 export const LEVELS = [
-  { min: 0, name: "Seed", fruit: "seed" },
-  { min: 150, name: "Sprout", fruit: "sprout" },
-  { min: 400, name: "Seedling", fruit: "seedling" },
-  { min: 800, name: "Sapling", fruit: "sapling" },
-  { min: 1400, name: "Blossom", fruit: "blossom" },
-  { min: 2200, name: "Fruit tree", fruit: "tree" },
-  { min: 3200, name: "Orchard", fruit: "orchard" },
-  { min: 4500, name: "Harvest hero", fruit: "harvest" },
+  { min: 0, name: "Starter" },
+  { min: 150, name: "Regular" },
+  { min: 400, name: "Steady" },
+  { min: 800, name: "Consistent" },
+  { min: 1400, name: "Committed" },
+  { min: 2200, name: "Dedicated" },
+  { min: 3200, name: "Seasoned" },
+  { min: 4500, name: "Exemplary" },
 ] as const;
 
 export function levelFor(xp: number) {
@@ -124,7 +122,7 @@ export function levelFor(xp: number) {
   const current = LEVELS[index];
   const next = LEVELS[index + 1] ?? null;
   const progress = next ? (xp - current.min) / (next.min - current.min) : 1;
-  return { index, level: index + 1, name: current.name, stage: current.fruit, next, xpToNext: next ? next.min - xp : 0, progress: Math.max(0, Math.min(1, progress)) };
+  return { index, level: index + 1, name: current.name, next, xpToNext: next ? next.min - xp : 0, progress: Math.max(0, Math.min(1, progress)) };
 }
 
 export type BadgeKey =
@@ -141,20 +139,22 @@ export type BadgeKey =
   | "sleep_champ"
   | "pcos_warrior";
 
-export const BADGES: Record<BadgeKey, { title: string; description: string; fruit: FruitKey | "seed" }> = {
-  first_steps: { title: "First steps", description: "Finish your first daily quest", fruit: "seed" },
-  streak_3: { title: "Warming up", description: "Keep a 3-day streak", fruit: "lemon" },
-  streak_7: { title: "Week of wins", description: "Keep a 7-day streak", fruit: "orange" },
-  streak_14: { title: "Two-week bloom", description: "Keep a 14-day streak", fruit: "strawberry" },
-  streak_30: { title: "Month of harvest", description: "Keep a 30-day streak", fruit: "watermelon" },
-  perfect_week: { title: "Perfect week", description: "Every medicine dose taken for 7 days in a row", fruit: "orange" },
-  hydration_hero: { title: "Hydration hero", description: "8 glasses of water on 7 days", fruit: "watermelon" },
-  walker: { title: "Happy feet", description: "30-minute walks on 10 days", fruit: "apple" },
-  vitals_pro: { title: "Numbers nerd", description: "Readings recorded on 14 days", fruit: "strawberry" },
-  green_plate: { title: "Green plate", description: "5 fruit & veg servings on 7 days", fruit: "grapes" },
-  sleep_champ: { title: "Sleep champ", description: "7+ hours of sleep on 7 days", fruit: "lemon" },
-  pcos_warrior: { title: "Rhythm keeper", description: "20 PCOS protocol actions done", fruit: "pear" },
+export const BADGES: Record<BadgeKey, { title: string; description: string }> = {
+  first_steps: { title: "First steps", description: "Finish your first daily quest" },
+  streak_3: { title: "Warming up", description: "Keep a 3-day streak" },
+  streak_7: { title: "Full week", description: "Keep a 7-day streak" },
+  streak_14: { title: "Two weeks strong", description: "Keep a 14-day streak" },
+  streak_30: { title: "Thirty days", description: "Keep a 30-day streak" },
+  perfect_week: { title: "Perfect week", description: "Every medicine dose taken for 7 days in a row" },
+  hydration_hero: { title: "Well hydrated", description: "8 glasses of water on 7 days" },
+  walker: { title: "Walker", description: "30-minute walks on 10 days" },
+  vitals_pro: { title: "Regular readings", description: "Readings recorded on 14 days" },
+  green_plate: { title: "Green plate", description: "5 fruit & veg servings on 7 days" },
+  sleep_champ: { title: "Well rested", description: "7+ hours of sleep on 7 days" },
+  pcos_warrior: { title: "Rhythm keeper", description: "20 PCOS protocol actions done" },
 };
+
+export type TallyKey = QuestKey | "mindful";
 
 export type GameSummary = {
   xp: number;
@@ -164,7 +164,8 @@ export type GameSummary = {
   bestStreak: number;
   today: { done: QuestKey[]; available: QuestDef[]; complete: boolean };
   badges: { key: BadgeKey; earned: boolean }[];
-  basket: Record<FruitKey, number>;
+  /** Days each quest was done (plus mindful minutes) across the logged period. */
+  tally: Record<TallyKey, number>;
   last7: { date: string; complete: boolean; grace: boolean; quests: number }[];
 };
 
@@ -200,10 +201,10 @@ export function summarize(daysList: DayActivity[], today: string): GameSummary {
     sleep_champ: count("sleep") >= 7,
     pcos_warrior: protocolTotal >= 20,
   };
-  const basket = { orange: 0, strawberry: 0, watermelon: 0, apple: 0, grapes: 0, lemon: 0, pear: 0 } as Record<FruitKey, number>;
+  const tally: Record<TallyKey, number> = { meds: 0, vital: 0, water: 0, walk: 0, produce: 0, sleep: 0, mindful: 0 };
   for (const d of daysList) {
-    for (const k of questsDone(d)) basket[QUESTS.find((q) => q.key === k)!.fruit]++;
-    if ((d.habits.mindful ?? 0) >= HABIT_GOAL.mindful) basket.pear++;
+    for (const k of questsDone(d)) tally[k]++;
+    if ((d.habits.mindful ?? 0) >= HABIT_GOAL.mindful) tally.mindful++;
   }
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(today, i - 6);
@@ -218,7 +219,7 @@ export function summarize(daysList: DayActivity[], today: string): GameSummary {
     bestStreak: best,
     today: { done: questsDone(todayDay), available: questsFor(todayDay), complete: dayComplete(todayDay) },
     badges: (Object.keys(BADGES) as BadgeKey[]).map((key) => ({ key, earned: earned[key] })),
-    basket,
+    tally,
     last7,
   };
 }

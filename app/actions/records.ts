@@ -10,7 +10,7 @@ import { audit } from "@/lib/audit";
 import { encrypt } from "@/lib/crypto";
 import { ForbiddenError, getContext, requireCan } from "@/lib/context";
 import { istDate } from "@/lib/dates";
-import { detectFileType, MAX_UPLOAD_BYTES } from "@/lib/files";
+import { detectFileType, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/files";
 
 const recordInput = z.object({
   memberId: z.string().uuid("Choose who this record belongs to"),
@@ -39,7 +39,7 @@ export async function uploadRecord(form: FormData): Promise<ActionResult<{ id: s
     const file = form.get("file");
     let fileFields: { fileName: string; mimeType: string; sizeBytes: number; fileData: Buffer } | null = null;
     if (file instanceof File && file.size > 0) {
-      if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "That file is larger than 8 MB. Try a smaller photo or PDF.", fieldErrors: { file: "Max 8 MB" } };
+      if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: `That file is larger than ${MAX_UPLOAD_MB} MB. Try a smaller photo or PDF.`, fieldErrors: { file: `Max ${MAX_UPLOAD_MB} MB` } };
       const bytes = Buffer.from(await file.arrayBuffer());
       const mimeType = detectFileType(bytes);
       if (!mimeType) return { ok: false, error: "Please upload a PDF, JPG, PNG or WebP file.", fieldErrors: { file: "PDF, JPG, PNG or WebP only" } };

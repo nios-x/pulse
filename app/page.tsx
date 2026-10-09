@@ -12,6 +12,7 @@ import {
   Eye,
   FileHeart,
   FileScan,
+  Flame,
   HeartHandshake,
   HeartPulse,
   Languages,
@@ -27,7 +28,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { Fruit, FruitScatter } from "@/components/fruits/fruit";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -101,17 +101,15 @@ export default async function Landing() {
 
           {/* Product preview built from real UI pieces */}
           <div aria-hidden="true" className="relative">
-            <div className="absolute -inset-6 -z-10 overflow-hidden rounded-[2.5rem] bg-brand">
-              <FruitScatter />
-            </div>
+            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-brand" />
             <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-pop">
-              <div className="flex items-center gap-3 rounded-2xl bg-fruit-orange-soft p-3">
-                <Fruit kind="orange" className="size-10" />
+              <div className="flex items-center gap-3 rounded-xl bg-surface p-3">
+                <Flame className="size-4 shrink-0 text-brand" strokeWidth={2.25} />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">12-day streak!</p>
-                  <div className="mt-1 h-2 rounded-full bg-card"><div className="h-full w-2/3 rounded-full bg-fruit-orange" /></div>
+                  <p className="text-sm font-semibold">12-day streak</p>
+                  <div className="mt-1.5 h-1.5 rounded-full bg-muted"><div className="h-full w-2/3 rounded-full bg-brand" /></div>
                 </div>
-                <span className="font-heading text-sm font-extrabold">Sapling</span>
+                <span className="text-sm text-muted-foreground">Consistent</span>
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -203,7 +201,7 @@ export default async function Landing() {
                   <p className="mt-1.5 text-[0.9375rem] text-muted-foreground">{f.body}</p>
                 </li>
               ))}
-              <li className="flex flex-col justify-between gap-4 rounded-2xl bg-brand p-6 text-brand-foreground shadow-brand sm:col-span-2">
+              <li className="flex flex-col justify-between gap-4 rounded-2xl bg-brand p-6 text-brand-foreground sm:col-span-2">
                 <p className="flex items-center gap-2 text-sm font-medium opacity-90"><Languages className="size-4" aria-hidden="true" /> हिन्दी · मराठी · தமிழ் · বাংলা · తెలుగు · ಕನ್ನಡ · ગુજરાતી</p>
                 <p className="text-xl leading-snug font-semibold text-inherit">&ldquo;सीने में दर्द और पसीना&rdquo; is recognised as an emergency, whether it&apos;s typed, spoken or written in English.</p>
               </li>

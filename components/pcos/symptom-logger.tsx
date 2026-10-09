@@ -35,7 +35,7 @@ export function SymptomLogger({ memberId, today }: { memberId: string; today: Re
               aria-label={`${s.label}: ${LEVEL[v]}. Tap to change`}
               className={cn(
                 "flex min-h-16 w-full cursor-pointer flex-col items-start justify-center gap-1 rounded-2xl border px-3.5 py-2 text-left transition-colors disabled:cursor-not-allowed",
-                v === 0 ? "border-border bg-card hover:bg-muted/60" : v === 1 ? "border-fruit-lemon bg-fruit-lemon-soft" : v === 2 ? "border-fruit-orange bg-fruit-orange-soft" : "border-fruit-berry bg-fruit-berry-soft"
+                v === 0 ? "border-border bg-card hover:bg-muted/60" : v === 1 ? "border-brand/30 bg-brand-soft" : v === 2 ? "border-brand/60 bg-brand-soft" : "border-brand bg-brand-soft"
               )}
             >
               <span className="text-[0.9375rem] font-semibold">{s.label}</span>

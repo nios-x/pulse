@@ -5,7 +5,6 @@ import { ArrowRight, CalendarDays, MapPin, NotebookPen, Users, Video } from "luc
 import { db } from "@/db";
 import { appointments, members } from "@/db/schema";
 import { CopyCode } from "@/components/doctor/copy-code";
-import { FruitScatter } from "@/components/fruits/fruit";
 import { EmptyState } from "@/components/health/empty-state";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { StatusBadge } from "@/components/health/status-badge";
@@ -35,16 +34,14 @@ export default async function DoctorHome() {
 
   return (
     <div className="flex flex-col gap-8 animate-rise">
-      <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-brand sm:p-8">
-        <div aria-hidden="true" className="absolute -top-24 -right-16 size-72 rounded-full bg-brand-foreground/10" />
-        <FruitScatter className="hidden md:block" />
-        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+      <section className="rounded-3xl bg-brand p-6 text-brand-foreground sm:p-8">
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div className="space-y-3">
             <p className="text-sm font-semibold opacity-85">{formatDay(now)}</p>
-            <h1 className="font-heading text-[2rem] leading-tight font-extrabold text-inherit">{greeting()}, {doctor.name}</h1>
+            <h1 className="font-heading text-[2rem] leading-tight font-bold text-inherit">{greeting()}, {doctor.name}</h1>
             <p className="text-base opacity-90">{todays.length ? `${todays.length} appointment${todays.length > 1 ? "s" : ""} today` : "No appointments today"} · {patients.length} patient{patients.length === 1 ? "" : "s"} sharing with you</p>
           </div>
-          <div className="rounded-2xl bg-brand-foreground/10 p-5 backdrop-blur-sm">
+          <div className="rounded-2xl border border-brand-foreground/20 p-5">
             <p className="text-sm opacity-85">Your connect code</p>
             <p data-testid="connect-code" className="font-mono text-4xl font-bold tracking-[0.3em]">{doctor.connectCode}</p>
             <p className="mt-1 text-sm opacity-85">Families enter this to share a patient&apos;s records with you.</p>

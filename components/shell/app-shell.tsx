@@ -51,11 +51,11 @@ export function AppShell({
         </div>
         <SidebarNav members={members} />
         <div className="p-3">
-          <Link href="/progress" className="flex items-center gap-3 rounded-2xl bg-brand p-3.5 text-brand-foreground shadow-brand transition-transform hover:-translate-y-0.5">
-            <StreakFlame days={streak} size="sm" onDark />
+          <Link href="/progress" className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-card p-3 transition-colors hover:bg-muted">
+            <StreakFlame days={streak} size="sm" />
             <span className="min-w-0 text-sm leading-tight">
               <span className="block font-semibold">{level}</span>
-              <span className="block truncate opacity-85">{familyName}</span>
+              <span className="block truncate text-muted-foreground">{familyName}</span>
             </span>
           </Link>
         </div>

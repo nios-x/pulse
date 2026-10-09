@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
-import { Crown, Medal, Sprout, Trophy } from "lucide-react";
+import { Sprout } from "lucide-react";
 import { db } from "@/db";
 import { medications, pcosProfiles } from "@/db/schema";
-import { FruitBasket, BadgeGrid } from "@/components/game/badges";
+import { BadgeGrid, HabitTally } from "@/components/game/badges";
 import { GraceDayButton } from "@/components/game/grace-day-button";
 import { LevelProgress } from "@/components/game/level-card";
 import { PlanCard } from "@/components/game/plan-card";
@@ -11,7 +11,6 @@ import { ProgressChart } from "@/components/game/progress-chart";
 import { QuestList } from "@/components/game/quest-list";
 import { StreakFlame } from "@/components/game/streak-flame";
 import { WeekStrip } from "@/components/game/week-strip";
-import { FruitScatter } from "@/components/fruits/fruit";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { SafetyNote } from "@/components/health/safety-note";
 import { MemberFilter } from "@/components/shell/member-filter";
@@ -67,43 +66,55 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   const first = firstName(member.name);
   const planDays = plan ? Math.round((new Date(`${today}T00:00:00Z`).getTime() - new Date(`${plan.startedOn}T00:00:00Z`).getTime()) / 86_400_000) : 0;
   const scoreImp = (improvements as { score?: { change: number } | null }).score;
+  const toGo = Math.max(0, STREAK_QUESTS - game.today.done.length);
+  const todayLine = game.todayActivity.grace
+    ? "Rest day today. The streak is protected."
+    : game.today.complete
+      ? "Today counts towards the streak."
+      : `${toGo} more quest${toGo === 1 ? "" : "s"} today to keep the streak.`;
 
   return (
     <div className="flex flex-col gap-8 animate-rise">
       <MemberFilter members={ctx.visibleMembers} active={member.id === ctx.self.id ? null : member.id} basePath="/progress" />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-brand sm:p-8">
-        <div aria-hidden="true" className="absolute -top-24 -right-16 size-72 rounded-full bg-brand-foreground/10" />
-        <div aria-hidden="true" className="absolute -bottom-28 left-1/3 size-64 rounded-full bg-brand-foreground/5" />
-        <FruitScatter className="hidden opacity-90 sm:block" />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <MemberAvatar name={member.name} tone={member.avatarTone} size="lg" className="ring-4 ring-brand-foreground/25" />
+      {/* Summary */}
+      <section aria-labelledby="progress-heading" className="grid gap-6 rounded-2xl border border-border bg-card p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-3.5">
+            <MemberAvatar name={member.name} tone={member.avatarTone} size="lg" />
+            <div className="min-w-0">
+              <h1 id="progress-heading" className="font-heading text-2xl leading-tight font-semibold sm:text-[1.75rem]">
+                {member.id === ctx.self.id ? "Your progress" : `${first}'s progress`}
+              </h1>
+              <p className="text-[0.9375rem] text-muted-foreground">{todayLine}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
+            <dl className="flex gap-8">
               <div>
-                <p className="text-sm font-medium opacity-85">{member.id === ctx.self.id ? "Your garden" : `${first}'s garden`}</p>
-                <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold text-inherit sm:text-[2rem]">
-                  {game.streak > 0 ? `${game.streak}-day streak, ${first}!` : `Let's grow, ${first}!`}
-                </h1>
+                <dt className="text-sm text-muted-foreground">Streak</dt>
+                <dd className="mt-0.5"><StreakFlame days={game.streak} size="lg" /></dd>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-              <StreakFlame days={game.streak} size="lg" onDark />
-              <div className="text-sm">
-                <p className="opacity-85">Best streak</p>
-                <p className="font-heading text-xl font-extrabold">{game.bestStreak} days</p>
+              <div>
+                <dt className="text-sm text-muted-foreground">Best</dt>
+                <dd className="mt-0.5 font-heading text-2xl font-semibold tabular">
+                  {game.bestStreak}
+                  <span className="ml-1.5 font-sans text-sm font-normal text-muted-foreground">day{game.bestStreak === 1 ? "" : "s"}</span>
+                </dd>
               </div>
-              <div className="text-sm">
-                <p className="opacity-85">This week</p>
-                <p className="font-heading text-xl font-extrabold tabular">{game.weeklyXp} XP</p>
+              <div>
+                <dt className="text-sm text-muted-foreground">This week</dt>
+                <dd className="mt-0.5 font-heading text-2xl font-semibold tabular">
+                  {game.weeklyXp}
+                  <span className="ml-1.5 font-sans text-sm font-normal text-muted-foreground">XP</span>
+                </dd>
               </div>
-            </div>
-            <WeekStrip days={game.last7} onDark />
+            </dl>
+            <WeekStrip days={game.last7} />
           </div>
-          <div className="rounded-2xl bg-brand-foreground/10 p-4 backdrop-blur-sm lg:w-80">
-            <LevelProgress level={game.level} xp={game.xp} onDark />
-          </div>
+        </div>
+        <div className="flex flex-col justify-center rounded-xl bg-surface p-4 sm:p-5">
+          <LevelProgress level={game.level} xp={game.xp} />
         </div>
       </section>
 
@@ -111,7 +122,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       <Card>
         <CardHeader className="gap-3 sm:grid-cols-[1fr_auto]">
           <div className="space-y-1">
-            <CardTitle className="font-heading text-xl font-bold">Today&apos;s quests</CardTitle>
+            <CardTitle className="font-heading text-xl font-semibold">Today&apos;s quests</CardTitle>
             <CardDescription>
               {game.today.done.length} of {game.today.available.length} done · finish {STREAK_QUESTS} to keep the streak growing
             </CardDescription>
@@ -132,7 +143,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       {/* Improvement chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-xl font-bold">Is it working?</CardTitle>
+          <CardTitle className="font-heading text-xl font-semibold">Is it working?</CardTitle>
           <CardDescription>
             {plan
               ? scoreImp && scoreImp.change > 0
@@ -150,7 +161,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       {/* Plan */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-heading text-xl font-bold"><Sprout className="size-5 text-primary" aria-hidden="true" /> Personalized plan</CardTitle>
+          <CardTitle className="flex items-center gap-2 font-heading text-xl font-semibold"><Sprout className="size-5 text-primary" aria-hidden="true" /> Personalized plan</CardTitle>
         </CardHeader>
         <CardContent>
           <PlanCard memberId={member.id} firstName={first} plan={plan ? { startedOn: plan.startedOn, items: plan.items, days: planDays } : null} suggestions={suggestions} />
@@ -160,7 +171,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-heading text-xl font-bold"><Trophy className="size-5 text-fruit-orange" aria-hidden="true" /> Badges</CardTitle>
+            <CardTitle className="font-heading text-xl font-semibold">Badges</CardTitle>
             <CardDescription>{game.badges.filter((b) => b.earned).length} of {game.badges.length} earned</CardDescription>
           </CardHeader>
           <CardContent>
@@ -169,23 +180,23 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-heading text-xl font-bold"><Crown className="size-5 text-fruit-lemon" aria-hidden="true" /> Family leaderboard</CardTitle>
-            <CardDescription>XP earned this week. Cheer each other on!</CardDescription>
+            <CardTitle className="font-heading text-xl font-semibold">This week in the family</CardTitle>
+            <CardDescription>XP earned over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
-            <ol className="flex flex-col gap-2">
+            <ol className="flex flex-col">
               {board.map(({ m, g }, i) => (
-                <li key={m.id} className={cn("flex items-center gap-3 rounded-2xl p-3", m.id === member.id ? "bg-brand-soft" : "bg-surface")}>
-                  <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full font-heading text-sm font-extrabold", i === 0 ? "bg-fruit-lemon text-fruit-ink" : i === 1 ? "bg-muted" : i === 2 ? "bg-fruit-orange-soft" : "bg-card")}>
-                    {i < 3 ? <Medal className="size-4" aria-hidden="true" /> : i + 1}
-                    <span className="sr-only">Rank {i + 1}</span>
+                <li key={m.id} className={cn("-mx-2 flex items-center gap-3 rounded-xl px-2 py-2.5", m.id === member.id && "bg-brand-soft")}>
+                  <span className="w-5 shrink-0 text-center text-sm font-medium text-muted-foreground tabular">
+                    {i + 1}
+                    <span className="sr-only">. Rank {i + 1}</span>
                   </span>
                   <MemberAvatar name={m.name} tone={m.avatarTone} size="sm" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.9375rem] font-semibold">{m.name.split(" ")[0]}</span>
-                    <span className="text-xs text-muted-foreground">{g.level.name} · {g.streak}-day streak</span>
+                    <span className="block truncate text-[0.9375rem] font-medium">{m.name.split(" ")[0]}</span>
+                    <span className="block text-sm text-muted-foreground">{g.level.name} · {g.streak}-day streak</span>
                   </span>
-                  <span className="font-heading text-lg font-extrabold tabular">{g.weeklyXp}<span className="ml-1 text-xs font-medium text-muted-foreground">XP</span></span>
+                  <span className="font-heading text-lg font-semibold tabular">{g.weeklyXp}<span className="ml-1 font-sans text-sm font-normal text-muted-foreground">XP</span></span>
                 </li>
               ))}
             </ol>
@@ -195,11 +206,11 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-xl font-bold">Fruit basket</CardTitle>
-          <CardDescription>Every quest you finish adds a fruit. Last 90 days since {formatDate(addDays(today, -89))}.</CardDescription>
+          <CardTitle className="font-heading text-xl font-semibold">Last 90 days</CardTitle>
+          <CardDescription>Days each goal was met since {formatDate(addDays(today, -89))}.</CardDescription>
         </CardHeader>
         <CardContent>
-          <FruitBasket basket={game.basket} />
+          <HabitTally tally={game.tally} />
         </CardContent>
       </Card>
     </div>

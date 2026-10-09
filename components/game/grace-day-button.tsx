@@ -14,7 +14,7 @@ export function GraceDayButton({ memberId, taken }: { memberId: string; taken: b
   const [pending, start] = useTransition();
   if (taken) {
     return (
-      <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-fruit-grape-soft px-3 text-sm font-medium text-fruit-grape">
+      <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-3 text-sm font-medium text-accent-foreground">
         <Moon className="size-4" aria-hidden="true" /> Rest day: streak protected
       </span>
     );

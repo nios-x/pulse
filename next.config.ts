@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     agentFeedback: true,
-    // Record uploads and prescription photos go through Server Actions (8 MB files + form overhead).
-    serverActions: { bodySizeLimit: "9mb" },
+    // Record uploads and prescription photos go through Server Actions (4 MB files + form overhead).
+    // Vercel caps request bodies at 4.5 MB, so this must stay under that.
+    serverActions: { bodySizeLimit: "4.5mb" },
   },
   turbopack: {
     rules: {
