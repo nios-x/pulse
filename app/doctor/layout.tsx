@@ -4,7 +4,6 @@ import { signOutAction } from "@/app/actions/session";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { DoctorNav } from "@/components/doctor/doctor-nav";
 import { MemberAvatar } from "@/components/health/member-avatar";
-import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { getDoctorContext } from "@/lib/doctor";
 
@@ -29,7 +28,6 @@ export default async function DoctorLayout({ children }: { children: React.React
             <Link href="/doctor" className="lg:hidden" aria-label="Pulse for doctors"><LogoMark /></Link>
             <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-brand-soft px-2.5 text-sm font-semibold text-accent-foreground"><Stethoscope className="size-4" aria-hidden="true" /> Doctor</span>
             <div className="ml-auto flex items-center gap-2">
-              <ThemeToggle />
               <MemberAvatar name={doctor.name.replace(/^Dr\.?\s*/i, "")} tone={6} size="sm" className="size-9" />
               <form action={signOutAction}><Button variant="ghost" size="sm" type="submit"><LogOut aria-hidden="true" /> <span className="hidden sm:inline">Sign out</span></Button></form>
             </div>

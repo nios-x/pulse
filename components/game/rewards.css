@@ -1,0 +1,75 @@
+/*
+ * Reward moments (components/game/rewards.tsx). Easings are written out because
+ * Tailwind's @theme inline tokens don't exist at runtime.
+ */
+.reward-scrim {
+  animation: reward-fade 280ms ease-out both;
+}
+.reward-scrim[data-leaving] {
+  animation: reward-fade-out 300ms ease-in both;
+}
+.reward-card {
+  animation: reward-card 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.reward-scrim[data-leaving] .reward-card {
+  animation: reward-card-out 300ms ease-in both;
+}
+/* Petals unfold one after another, like a flower opening. */
+.reward-petal {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: reward-petal 620ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  animation-delay: calc(140ms + var(--i) * 50ms);
+}
+.reward-core {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: reward-core 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
+.reward-ring {
+  animation: reward-ring 1300ms cubic-bezier(0.22, 1, 0.36, 1) 2 both;
+}
+.reward-rise {
+  animation: reward-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* A soft light that sweeps across a finished progress bar. */
+.reward-sheen {
+  background-image: linear-gradient(110deg, transparent 35%, oklch(1 0 0 / 0.5) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: reward-sheen 1.6s ease-in-out 2 both;
+}
+
+@keyframes reward-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes reward-fade-out {
+  to { opacity: 0; }
+}
+@keyframes reward-card {
+  from { opacity: 0; transform: translateY(16px) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes reward-card-out {
+  to { opacity: 0; transform: translateY(-8px) scale(0.96); }
+}
+@keyframes reward-petal {
+  from { opacity: 0; transform: rotate(calc(var(--a) - 40deg)) scale(0); }
+  to { opacity: 1; transform: rotate(var(--a)) scale(1); }
+}
+@keyframes reward-core {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes reward-ring {
+  from { opacity: 0.8; transform: scale(0.6); }
+  to { opacity: 0; transform: scale(1.7); }
+}
+@keyframes reward-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes reward-sheen {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}

@@ -8,8 +8,10 @@ type Recognition = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
+  maxAlternatives: number;
   start: () => void;
   stop: () => void;
+  abort: () => void;
   onresult: ((e: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>; resultIndex: number }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
@@ -21,19 +23,34 @@ function getRecognition(): (new () => Recognition) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+const ERRORS: Record<string, string> = {
+  "not-allowed": "Microphone permission was blocked. Allow it from the lock icon in the address bar, then try again.",
+  "service-not-allowed": "This browser doesn't allow voice input here. Try Chrome or Edge, or type instead.",
+  "no-speech": "We didn't hear anything. Tap the button and start speaking.",
+  "audio-capture": "No microphone was found. Check that one is connected and not used by another app.",
+  network: "Voice input needs an internet connection and works in Chrome or Edge (not Brave). You can type instead.",
+  "language-not-supported": "Voice input doesn't support this language in your browser. Try English or Hindi, or type instead.",
+};
+
 /**
  * A large microphone button: speak in your language and the words are typed for you.
  * Uses the browser's speech recognition (Chrome and Edge on Android and desktop).
+ * Spoken words are added after whatever is already in `value`.
  */
 const noop = () => () => {};
 
-export function VoiceInput({ lang, onText, className }: { lang: string; onText: (text: string, final: boolean) => void; className?: string }) {
+export function VoiceInput({ lang, value, onChange, className }: { lang: string; value: string; onChange: (text: string) => void; className?: string }) {
   const [listening, setListening] = useState(false);
   const supported = useSyncExternalStore(noop, () => Boolean(getRecognition()), () => true);
   const [error, setError] = useState<string | null>(null);
   const rec = useRef<Recognition | null>(null);
 
-  useEffect(() => () => rec.current?.stop(), []);
+  useEffect(() => () => rec.current?.abort(), []);
+
+  // Stop if the language changes mid-sentence; the next tap uses the new one.
+  useEffect(() => {
+    rec.current?.abort();
+  }, [lang]);
 
   const toggle = () => {
     if (listening) {
@@ -42,28 +59,38 @@ export function VoiceInput({ lang, onText, className }: { lang: string; onText: 
     }
     const R = getRecognition();
     if (!R) return;
+    rec.current?.abort();
+
+    const base = value.trimEnd();
     const r = new R();
     r.lang = lang;
     r.interimResults = true;
-    r.continuous = false;
+    r.maxAlternatives = 1;
+    // Android Chrome repeats earlier words in continuous mode, so let it end after a pause there.
+    r.continuous = !/android/i.test(navigator.userAgent);
     r.onresult = (e) => {
-      let text = "";
-      let final = false;
-      for (let i = 0; i < e.results.length; i++) {
-        text += e.results[i][0].transcript;
-        if (e.results[i].isFinal) final = true;
-      }
-      onText(text, final);
+      let spoken = "";
+      for (let i = 0; i < e.results.length; i++) spoken += e.results[i][0].transcript;
+      spoken = spoken.trim();
+      if (spoken) onChange(base ? `${base} ${spoken}` : spoken);
     };
     r.onerror = (e) => {
-      setError(e.error === "not-allowed" ? "Microphone permission was blocked. Allow it in the browser settings." : e.error === "no-speech" ? "We didn't hear anything. Try again." : "Voice input stopped. You can type instead.");
+      if (e.error !== "aborted") setError(ERRORS[e.error] ?? `Voice input stopped (${e.error}). You can type instead.`);
       setListening(false);
     };
-    r.onend = () => setListening(false);
+    r.onend = () => {
+      if (rec.current === r) rec.current = null;
+      setListening(false);
+    };
     rec.current = r;
     setError(null);
-    r.start();
-    setListening(true);
+    try {
+      r.start();
+      setListening(true);
+    } catch {
+      rec.current = null;
+      setError("Couldn't start the microphone. Wait a moment and try again.");
+    }
   };
 
   if (!supported) {

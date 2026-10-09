@@ -9,7 +9,6 @@ import { BottomTabs } from "./bottom-tabs";
 import { ExitPreviewButton } from "./exit-preview";
 import { NotificationsMenu, type NotificationItem } from "./notifications-menu";
 import { SidebarNav, type NavMember } from "./sidebar-nav";
-import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { ViewAsSwitcher } from "./view-as-switcher";
 
@@ -86,7 +85,6 @@ export function AppShell({
               </Link>
               {actualRole === "admin" && <ViewAsSwitcher current={role} className="hidden md:inline-flex" />}
               <NotificationsMenu items={notifications} unread={unread} />
-              <ThemeToggle />
               <UserMenu {...user} />
             </div>
           </div>

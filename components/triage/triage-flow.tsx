@@ -185,7 +185,7 @@ export function TriageFlow({ members, defaultMemberId }: { members: { id: string
               aria-invalid={error ? true : undefined}
             />
           </Field>
-          <VoiceInput lang={lang} onText={(text) => setSymptoms(text)} />
+          <VoiceInput lang={lang} value={symptoms} onChange={setSymptoms} />
         </section>
 
         <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:p-6">

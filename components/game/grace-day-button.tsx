@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Moon } from "lucide-react";
 import { toast } from "sonner";
 import { takeGraceDay } from "@/app/actions/habits";
+import { celebrate } from "@/components/game/rewards";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { GRACE_REASONS } from "@/lib/pcos";
@@ -37,7 +38,7 @@ export function GraceDayButton({ memberId, taken }: { memberId: string; taken: b
               onClick={() =>
                 start(async () => {
                   const res = await takeGraceDay({ memberId, reason: r.key });
-                  if (res.ok) { toast.success(res.message); setOpen(false); }
+                  if (res.ok) { setOpen(false); celebrate({ title: "Rest is part of the plan", message: res.message, kind: "moon" }); }
                   else toast.error(res.error);
                 })
               }

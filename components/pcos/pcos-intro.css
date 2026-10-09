@@ -1,0 +1,59 @@
+/*
+ * PCOS care welcome. Built on Pulse tokens; the only extra colour is one soft rose
+ * for the glow and petals. Theme tokens like --ease-out-soft are inlined by Tailwind
+ * and don't exist at runtime, so easings are written out here.
+ */
+.bloom {
+  --bloom-rose: oklch(0.78 0.11 345);
+}
+.dark .bloom {
+  --bloom-rose: oklch(0.64 0.13 345);
+}
+.bloom-rise {
+  animation: bloom-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bloom-float {
+  animation: bloom-float 6s ease-in-out infinite;
+}
+.bloom-float-late {
+  animation: bloom-float 7s ease-in-out 1.5s infinite;
+}
+/* The page closes in on itself like a flower at dusk... */
+.bloom-fold {
+  animation: bloom-fold 750ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+/* ...into a bud that opens once... */
+.bloom-bud {
+  animation: bloom-bud 1400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* ...and lets its petals drift away. */
+.bloom-petal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  animation: bloom-petal var(--dur) cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay) both;
+}
+@keyframes bloom-rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes bloom-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes bloom-fold {
+  from { clip-path: circle(75% at 50% 50%); }
+  to { clip-path: circle(0% at 50% 50%); }
+}
+@keyframes bloom-bud {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-25deg); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.06) rotate(4deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4) rotate(12deg); }
+}
+@keyframes bloom-petal {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--r0)) scale(0.3); }
+  12% { opacity: 1; }
+  70% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--r1)) scale(1); }
+}

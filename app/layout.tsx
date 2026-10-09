@@ -19,25 +19,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f5fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#16121f" },
-  ],
+  themeColor: "#f7f5fb",
+  colorScheme: "light",
 };
-
-// Applies the saved theme (or the OS preference) before first paint, so there is no flash.
-const themeScript = `(function(){try{var t=localStorage.getItem('pulse-theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${jakarta.variable}`} suppressHydrationWarning>
-      <head>
-        <script
-          type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: themeScript }}
-        />
-      </head>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh">
         <TooltipProvider delay={150}>{children}</TooltipProvider>
         <Toaster />

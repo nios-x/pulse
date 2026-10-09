@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, FileText, HeartHandshake, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { savePcosSetup } from "@/app/actions/pcos";
+import { burst, celebrate, pop } from "@/components/game/rewards";
 import { Field } from "@/components/form/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,18 +41,22 @@ export function PcosSetup({ memberId, initial }: { memberId: string; initial?: {
   const total = QUESTIONS.length + 1;
   const q = step > 0 ? QUESTIONS[step - 1] : null;
 
-  const next = () => {
+  const next = (button?: HTMLElement) => {
     setError(null);
     if (step === 0) {
       if (doctorName.trim().length < 2) return setError("Please add your doctor's name. Pulse works with your doctor's guidance, not instead of it.");
       if (!meds.some((m) => m.name.trim())) return setError("Please add at least one item from your doctor's prescription.");
     } else if (q && !q.multi && answers[q.key] === undefined) return setError("Pick one option to continue.");
-    if (step < total - 1) setStep(step + 1);
+    if (step < total - 1) {
+      burst(button, { kind: "sparkle", count: 8, spread: 50 });
+      pop(document.querySelector("[data-setup-count]"), 0.8);
+      setStep(step + 1);
+    }
     else
       start(async () => {
         const res = await savePcosSetup({ memberId, doctorName, diagnosedOn, prescribed: meds.filter((m) => m.name.trim()), supplements: supps.filter((m) => m.name.trim()), answers });
         if (res.ok) {
-          toast.success(res.message);
+          celebrate({ title: "Your plan is ready", message: res.message });
           if (res.data?.eatingConcern) toast.info("If food feels stressful, talking helps. iCall: 9152987821 (free, confidential).", { duration: 10000 });
           router.push(`/pcos?member=${memberId}`);
         } else setError(res.error);
@@ -78,7 +83,7 @@ export function PcosSetup({ memberId, initial }: { memberId: string; initial?: {
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Setup progress" aria-valuemin={0} aria-valuemax={total} aria-valuenow={step + 1}>
           <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${((step + 1) / total) * 100}%` }} />
         </div>
-        <span className="text-sm font-medium text-muted-foreground tabular">{step + 1} / {total}</span>
+        <span data-setup-count className="text-sm font-medium text-muted-foreground tabular">{step + 1} / {total}</span>
       </div>
 
       {step === 0 ? (
@@ -112,13 +117,14 @@ export function PcosSetup({ memberId, initial }: { memberId: string; initial?: {
                     type="button"
                     role={q.multi ? "checkbox" : "radio"}
                     aria-checked={Boolean(on)}
-                    onClick={() =>
+                    onClick={(e) => {
+                      if (!on) pop(e.currentTarget.firstElementChild, 1.2);
                       setAnswers((a) => {
                         if (!q.multi) return { ...a, [q.key]: o.value };
                         const cur = (a[q.key] as string[]) ?? [];
                         return { ...a, [q.key]: on ? cur.filter((x) => x !== o.value) : [...cur, o.value as string] };
-                      })
-                    }
+                      });
+                    }}
                     className={cn("flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border px-4 text-left text-base transition-colors", on ? "border-brand bg-brand-soft font-semibold text-accent-foreground" : "border-border hover:bg-muted/60")}
                   >
                     <span className={cn("flex size-6 shrink-0 items-center justify-center border-2", q.multi ? "rounded-md" : "rounded-full", on ? "border-brand bg-brand text-brand-foreground" : "border-border-strong")}>{on && <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />}</span>
@@ -137,7 +143,7 @@ export function PcosSetup({ memberId, initial }: { memberId: string; initial?: {
       {error && <p role="alert" className="text-sm font-medium text-danger">{error}</p>}
       <div className="flex items-center justify-between">
         <Button variant="ghost" disabled={step === 0} onClick={() => { setError(null); setStep(step - 1); }}><ArrowLeft aria-hidden="true" /> Back</Button>
-        <Button variant={step === total - 1 ? "default" : "brand"} size="lg" onClick={next} disabled={pending}>
+        <Button variant={step === total - 1 ? "default" : "brand"} size="lg" onClick={(e) => next(e.currentTarget)} disabled={pending}>
           {step === total - 1 ? (pending ? "Saving…" : "See my plan") : "Continue"} <ArrowRight aria-hidden="true" />
         </Button>
       </div>

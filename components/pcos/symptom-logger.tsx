@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
 import { logSymptom } from "@/app/actions/pcos";
+import { floatLabel, pop } from "@/components/game/rewards";
 import { useAccess } from "@/components/providers/access-provider";
 import { PCOS_SYMPTOMS } from "@/lib/pcos";
 import { cn } from "@/lib/utils";
@@ -24,14 +25,17 @@ export function SymptomLogger({ memberId, today }: { memberId: string; today: Re
             <button
               type="button"
               disabled={!allowed}
-              onClick={() =>
+              onClick={(e) => {
+                const next = (v + 1) % 4;
+                // A quiet acknowledgement, never a celebration: logging how you feel is care, not a score.
+                pop(e.currentTarget, 0.35);
+                if (v === 0) floatLabel(e.currentTarget, "Noted", "soft");
                 start(async () => {
-                  const next = (v + 1) % 4;
                   set({ k: s.key, v: next });
                   const res = await logSymptom({ memberId, symptom: s.key, severity: next });
                   if (!res.ok) toast.error(res.error);
-                })
-              }
+                });
+              }}
               aria-label={`${s.label}: ${LEVEL[v]}. Tap to change`}
               className={cn(
                 "flex min-h-16 w-full cursor-pointer flex-col items-start justify-center gap-1 rounded-2xl border px-3.5 py-2 text-left transition-colors disabled:cursor-not-allowed",

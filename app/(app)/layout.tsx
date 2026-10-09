@@ -1,3 +1,5 @@
+import { AssistantWidget } from "@/components/assistant/assistant-widget";
+import { CelebrationHost } from "@/components/game/rewards";
 import { AccessProvider } from "@/components/providers/access-provider";
 import { AppShell } from "@/components/shell/app-shell";
 import { getContext } from "@/lib/context";
@@ -44,6 +46,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         level={game.level.name}
       >
         {children}
+        <CelebrationHost />
+        <AssistantWidget userName={ctx.user.name} people={ctx.visibleMembers.map((m) => ({ name: m.name, isSelf: m.id === ctx.self.id }))} />
       </AppShell>
     </AccessProvider>
   );

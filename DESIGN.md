@@ -43,7 +43,9 @@ Headings in Plus Jakarta Sans (`font-heading`, bold/extrabold), body in Geist (v
 
 ## Motion
 
-150–200ms colour and transform transitions (`--ease-out-soft`), a 200ms `animate-rise` on page entry and a gentle `animate-shimmer` for skeletons. The one ambient effect is `ShaderBackground` (`components/brand`), a slow white-and-sky-blue WebGL mesh behind the dashboard greeting only, with a card-coloured fade under the text, hidden in dark mode and frozen under reduced motion. No confetti or other looping decorative motion; a completed quest is confirmed by a toast and the row turning to "Done". `prefers-reduced-motion` turns all of it off.
+150–200ms colour and transform transitions (`--ease-out-soft`), a 200ms `animate-rise` on page entry and a gentle `animate-shimmer` for skeletons. The one ambient effect is `ShaderBackground` (`components/brand`), a slow white-and-sky-blue WebGL mesh behind the dashboard greeting only, with a card-coloured fade under the text, hidden in dark mode and frozen under reduced motion. No looping decorative motion; a completed quest is confirmed by a toast and the row turning to "Done".
+
+PCOS care is the exception, and it's deliberately warmer. `PcosIntro` plays a two-second welcome on each visit that folds into a flower and lets its petals go. Finished steps get short rewards from `components/game/rewards.tsx`: `pop`, a petal `burst`, a rising `floatLabel` ("+5 XP", "Morning done") and, for the big moments (whole day done, balanced plate, plan ready, rest day), `celebrate()`, a blooming-flower or moon card shown by `CelebrationHost`. Symptom logging only gets a quiet "Noted": how someone feels is never celebrated or scored. `prefers-reduced-motion` turns all of it off.
 
 ## Accessibility
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, Tooltip, XAxis, YAxis } from "recharts";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteCycle, logCycle } from "@/app/actions/pcos";
+import { burst, floatLabel } from "@/components/game/rewards";
 import { Field } from "@/components/form/field";
 import { Segmented } from "@/components/form/segmented";
 import { useAccess } from "@/components/providers/access-provider";
@@ -20,12 +21,13 @@ export function CycleForm({ memberId, today }: { memberId: string; today: string
   const [flow, setFlow] = useState<"light" | "medium" | "heavy">("medium");
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [pending, start] = useTransition();
+  const submit = useRef<HTMLButtonElement>(null);
   return (
     <form
       action={(f) =>
         start(async () => {
           const res = await logCycle({ memberId, startDate: f.get("startDate"), endDate: f.get("endDate"), flow, notes: f.get("notes") || undefined });
-          if (res.ok) { toast.success(res.message); setErrors({}); }
+          if (res.ok) { burst(submit.current, { count: 12, spread: 70 }); floatLabel(submit.current, "Logged", "soft"); toast.success(res.message); setErrors({}); }
           else { setErrors(res.fieldErrors ?? {}); toast.error(res.error); }
         })
       }
@@ -38,7 +40,7 @@ export function CycleForm({ memberId, today }: { memberId: string; today: string
         <Segmented name="flow" label="Flow" value={flow} onChange={setFlow} options={[{ value: "light", label: "Light" }, { value: "medium", label: "Medium" }, { value: "heavy", label: "Heavy" }]} />
       </fieldset>
       <Field label="Notes" htmlFor="c-notes" optional className="sm:col-span-2"><Input id="c-notes" name="notes" placeholder="e.g. cramps on day 1" maxLength={300} /></Field>
-      <Button type="submit" className="w-fit" disabled={pending || !can("vitals.log", memberId)}>{pending ? "Saving…" : "Log period"}</Button>
+      <Button ref={submit} type="submit" className="w-fit" disabled={pending || !can("vitals.log", memberId)}>{pending ? "Saving…" : "Log period"}</Button>
     </form>
   );
 }
