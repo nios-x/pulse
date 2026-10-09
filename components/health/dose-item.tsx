@@ -1,159 +1,153 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { CheckIcon, MoonIcon, SunIcon, SunriseIcon, type LucideIcon } from "lucide-react";
-import { markDoseAction } from "@/app/(app)/p/[patientId]/meds/actions";
-import { useT } from "@/components/i18n-provider";
+import { Check, CircleSlash, Clock, EllipsisVertical, RotateCcw, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
+import { logDose } from "@/app/actions/doses";
 import { MemberAvatar } from "@/components/health/member-avatar";
 import { RoleGate } from "@/components/health/role-gate";
-import { toast } from "@/components/ui/toast";
-import type { DoseStatus } from "@/lib/adherence";
-import type { Daypart } from "@/lib/family";
+import { StatusBadge } from "@/components/health/status-badge";
+import { useAccess } from "@/components/providers/access-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatTime } from "@/lib/dates";
+import type { DoseState } from "@/lib/meds";
 import { cn } from "@/lib/utils";
 
 export type DoseItemData = {
-  patientId: string;
+  key: string;
   medicationId: string;
+  memberId: string;
   name: string;
-  dose: string;
-  slot: string;
-  slotLabel: string;
-  daypart: Daypart;
-  status: DoseStatus;
-  late: boolean;
-  canMark: boolean;
-  /** Shown on the family checklist, where doses from several people mix. */
-  who?: { name: string; index: number };
+  strength: string;
+  instructions: string | null;
+  time: string;
+  date: string;
+  state: DoseState;
+  loggedAtLabel: string | null;
+  loggedByName: string | null;
 };
 
-const DAYPARTS: { key: Daypart; icon: LucideIcon }[] = [
-  { key: "morning", icon: SunriseIcon },
-  { key: "afternoon", icon: SunIcon },
-  { key: "night", icon: MoonIcon },
-];
+const STATE_BADGE: Record<DoseState, { tone: "success" | "warning" | "danger" | "info" | "neutral"; label: string; icon: typeof Check }> = {
+  taken: { tone: "success", label: "Taken", icon: Check },
+  due: { tone: "info", label: "Due now", icon: Clock },
+  missed: { tone: "danger", label: "Missed", icon: TriangleAlert },
+  upcoming: { tone: "neutral", label: "Later", icon: Clock },
+  skipped: { tone: "neutral", label: "Skipped", icon: CircleSlash },
+};
 
-const id = (d: { medicationId: string; slot: string }) => `${d.medicationId}|${d.slot}`;
-
-/** Today's doses grouped by morning, afternoon and night. One tap ticks a dose. */
-export function DoseChecklist({
-  items,
-  lockedReason,
-  emptyText,
+export function DoseItem({
+  dose,
+  member,
 }: {
-  items: DoseItemData[];
-  lockedReason: string;
-  emptyText: string;
+  dose: DoseItemData;
+  /** Shown on the family checklist so you know whose dose it is. */
+  member?: { name: string; tone: number };
 }) {
-  const t = useT();
-  const [, start] = useTransition();
-  const [list, setTaken] = useOptimistic(items, (state, change: { key: string; taken: boolean }) =>
-    state.map((d) => (id(d) === change.key ? { ...d, status: change.taken ? "taken" : "due", late: false } : d))
-  );
+  const { can } = useAccess();
+  const [pending, start] = useTransition();
+  const [state, setOptimistic] = useOptimistic(dose.state);
+  const allowed = can("doses.log", dose.memberId);
+  const done = state === "taken";
+  const label = `${dose.name} ${dose.strength}`.trim();
 
-  const mark = (d: DoseItemData, taken: boolean) =>
+  const act = (status: "taken" | "skipped" | "undo") =>
     start(async () => {
-      setTaken({ key: id(d), taken });
-      const res = await markDoseAction({ patientId: d.patientId, medicationId: d.medicationId, slot: d.slot, taken });
+      setOptimistic(status === "taken" ? "taken" : status === "skipped" ? "skipped" : dose.state === "taken" || dose.state === "skipped" ? "due" : dose.state);
+      const res = await logDose({ medicationId: dose.medicationId, date: dose.date, time: dose.time, status });
       if (res.ok) {
-        toast.add({
-          type: "success",
-          title: taken ? t("dose.toastTaken", { name: d.name }) : t("dose.toastUndone", { name: d.name }),
-          description: d.who ? `${d.who.name.split(" ")[0]} · ${d.slotLabel}` : d.slotLabel,
+        toast.success(res.message ?? "Saved", {
+          action: status !== "undo" ? { label: "Undo", onClick: () => act("undo") } : undefined,
         });
       } else {
-        toast.add({ type: "error", title: t("common.error") });
+        toast.error(res.error);
       }
     });
 
-  if (list.length === 0) {
-    return <p className="rounded-2xl border-2 border-dashed border-edge-strong bg-card/50 border-edge-strong px-4 py-6 text-center text-ink-2">{emptyText}</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-5">
-      {DAYPARTS.map(({ key, icon: Icon }) => {
-        const group = list.filter((d) => d.daypart === key);
-        if (group.length === 0) return null;
-        const done = group.filter((d) => d.status === "taken").length;
-        return (
-          <section key={key} aria-label={t(`daypart.${key}`)} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink-2">
-              <Icon className="size-[1.125rem] text-sage" aria-hidden />
-              {t(`daypart.${key}`)}
-              <span className="ml-auto font-normal text-ink-3 tabular">{t("dose.countDone", { done, total: group.length })}</span>
-            </div>
-            <ul className="flex flex-col gap-2">
-              {group.map((d) => (
-                <DoseRow key={id(d)} d={d} onMark={mark} lockedReason={lockedReason} />
-              ))}
-            </ul>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function DoseRow({
-  d,
-  onMark,
-  lockedReason,
-}: {
-  d: DoseItemData;
-  onMark: (d: DoseItemData, taken: boolean) => void;
-  lockedReason: string;
-}) {
-  const t = useT();
-  const taken = d.status === "taken";
-  const state = taken ? "taken" : d.late ? "late" : d.status === "due" ? "due" : "later";
+  const badge = STATE_BADGE[state];
 
   return (
     <li
       className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200",
-        taken ? "bg-ok-wash/60" : state === "late" ? "bg-alert-wash/70" : "well"
+        "flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors duration-150 sm:gap-4 sm:px-4",
+        done ? "border-success-border/70 bg-success-soft/50" : state === "missed" ? "border-danger-border/70 bg-card" : state === "due" ? "border-primary/40 bg-card" : "border-border bg-card"
       )}
     >
-      <RoleGate allowed={d.canMark} reason={lockedReason}>
+      <RoleGate action="doses.log" memberId={dose.memberId}>
         <button
           type="button"
-          onClick={() => onMark(d, !taken)}
-          aria-pressed={taken}
-          aria-label={taken ? t("meds.undoTaken", { name: d.name }) : t("dose.markAria", { name: d.name, time: d.slotLabel })}
+          onClick={() => act(done ? "undo" : "taken")}
+          disabled={pending || !allowed}
+          aria-pressed={done}
+          aria-label={done ? `Undo: ${label} at ${formatTime(dose.time)} was marked taken` : `Mark ${label} at ${formatTime(dose.time)} as taken`}
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,box-shadow,transform] duration-200 active:scale-95",
-            taken ? "check-done" : "border-2 border-dashed border-sage/50 bg-sheet text-sage hover:border-sage hover:bg-sage-wash"
+            "flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-[background-color,border-color,transform] duration-150 active:scale-95 disabled:cursor-not-allowed",
+            done
+              ? "border-success bg-success text-card"
+              : state === "missed"
+                ? "border-danger-border bg-card text-danger hover:bg-danger-soft"
+                : "border-border-strong bg-card text-muted-foreground hover:border-primary hover:bg-accent hover:text-primary"
           )}
         >
-          <CheckIcon className={cn("size-5", !taken && "opacity-0 [button:hover>&]:opacity-60")} strokeWidth={3} aria-hidden />
+          <Check className={cn("size-6 transition-opacity", done ? "opacity-100" : "opacity-40")} strokeWidth={2.5} aria-hidden="true" />
         </button>
       </RoleGate>
+
       <div className="min-w-0 flex-1">
-        <p className={cn("truncate text-base font-semibold", taken && "text-ink-2")}>
-          {d.name} <span className="font-normal text-ink-3">{d.dose}</span>
-        </p>
-        <p className="flex items-center gap-1.5 text-sm text-ink-2">
-          {d.who ? (
-            <>
-              <MemberAvatar name={d.who.name} index={d.who.index} size="sm" className="size-5 text-[0.55rem]" />
-              <span className="truncate">{d.who.name.split(" ")[0]}</span>
-              <span aria-hidden>·</span>
-            </>
-          ) : null}
-          <span className="tabular">{d.slotLabel}</span>
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <p className={cn("text-base font-semibold", done && "text-muted-foreground")}>{dose.name}</p>
+          <p className="text-sm text-muted-foreground">{dose.strength}</p>
+        </div>
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">
+          {member && (
+            <span className="mr-1.5 inline-flex items-center gap-1.5 align-middle font-medium text-foreground">
+              <MemberAvatar name={member.name} tone={member.tone} size="sm" className="size-5 text-[0.625rem]" />
+              {member.name.split(" ")[0]}
+              <span aria-hidden="true" className="text-muted-foreground">·</span>
+            </span>
+          )}
+          {done && dose.loggedAtLabel
+            ? `Taken at ${dose.loggedAtLabel}${dose.loggedByName ? ` by ${dose.loggedByName}` : ""}`
+            : dose.instructions ?? "As prescribed"}
         </p>
       </div>
-      <span
-        className={cn(
-          "shrink-0 text-sm font-semibold",
-          state === "taken" && "text-ok-ink",
-          state === "late" && "text-alert-ink",
-          state === "due" && "text-watch-ink",
-          state === "later" && "font-medium text-ink-3"
-        )}
-      >
-        {t(`dose.state.${state}`)}
-      </span>
+
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <span className="text-sm font-medium tabular">{formatTime(dose.time)}</span>
+        <StatusBadge tone={badge.tone} label={badge.label} icon={badge.icon} size="sm" />
+      </div>
+
+      {allowed && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={`More options for ${label} at ${formatTime(dose.time)}`}
+            className="-mr-1 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:bg-muted aria-expanded:bg-muted"
+          >
+            <EllipsisVertical className="size-5" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {!done && (
+              <DropdownMenuItem onClick={() => act("taken")}>
+                <Check aria-hidden="true" /> Mark taken
+              </DropdownMenuItem>
+            )}
+            {state !== "skipped" && (
+              <DropdownMenuItem onClick={() => act("skipped")}>
+                <CircleSlash aria-hidden="true" /> Skip this dose
+              </DropdownMenuItem>
+            )}
+            {(done || state === "skipped") && (
+              <DropdownMenuItem onClick={() => act("undo")}>
+                <RotateCcw aria-hidden="true" /> Undo
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </li>
   );
 }

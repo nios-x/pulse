@@ -1,1 +1,0 @@
-ALTER TABLE "meals" ADD COLUMN "details" jsonb;

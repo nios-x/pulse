@@ -1,121 +1,94 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { BellIcon, HeartPulseIcon, LifeBuoyIcon, LineChartIcon, SettingsIcon, StethoscopeIcon, SunIcon, type LucideIcon } from "lucide-react";
-import { getT } from "@/lib/i18n-server";
-import { countUnread } from "@/lib/alerts";
-import { assistantEnabled } from "@/lib/gemini";
-import { getCurrentUser } from "@/lib/auth";
-import { canLog, getAccess } from "@/lib/permissions";
-import { CornerLeaf, PulseMark } from "@/components/shapes/shapes";
-import { AlertBell } from "@/components/shell/alert-bell";
-import { AppMenu } from "@/components/shell/app-menu";
-import { BottomNav } from "@/components/shell/bottom-nav";
-import { LanguageSwitch } from "@/components/shell/language-switch";
-import { PushToggle } from "@/components/shell/push-toggle";
-import { SignOutButton } from "@/components/shell/sign-out-button";
-import { cn } from "@/lib/utils";
+import { Eye } from "lucide-react";
+import { Logo, LogoMark } from "@/components/brand/logo";
+import { RoleBadge } from "@/components/health/role-badge";
+import type { Role } from "@/db/schema";
+import { ROLE_LABEL } from "@/lib/permissions";
+import { BottomTabs } from "./bottom-tabs";
+import { ExitPreviewButton } from "./exit-preview";
+import { NotificationsMenu, type NotificationItem } from "./notifications-menu";
+import { SidebarNav, type NavMember } from "./sidebar-nav";
+import { ThemeToggle } from "./theme-toggle";
+import { UserMenu } from "./user-menu";
+import { ViewAsSwitcher } from "./view-as-switcher";
 
-type ShellPatient = { id: string; name?: string } | null;
-
-function MenuLink({ href, icon: Icon, children }: { href: string; icon: LucideIcon; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="group flex h-13 items-center gap-3.5 rounded-xl px-3 text-base font-medium text-plum transition-colors hover:bg-violet-wash"
-    >
-      <span className="flex size-9 items-center justify-center rounded-lg bg-violet-wash text-violet transition-colors group-hover:bg-white">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      {children}
-    </Link>
-  );
-}
-
-/** Mobile shell: brand row with the patient's name over a corner leaf, bell and menu; page; bottom nav. */
-export async function AppShell({
-  patient,
+export function AppShell({
   children,
+  familyName,
+  role,
+  actualRole,
+  viewingAs,
+  members,
+  user,
+  notifications,
+  unread,
 }: {
-  patient: ShellPatient;
-  children: ReactNode;
+  children: React.ReactNode;
+  familyName: string;
+  role: Role;
+  actualRole: Role;
+  viewingAs: Role | null;
+  members: NavMember[];
+  user: { name: string; email: string; tone: number; selfId: string };
+  notifications: NotificationItem[];
+  unread: number;
 }) {
-  const { t } = await getT();
-  const access = patient ? await getAccess(patient.id) : null;
-  const can = access?.permissions;
-  // Doctors only read, so they get no Log tab.
-  const showLog = access ? canLog(access.permissions) : !(await getCurrentUser())?.isDoctor;
-  // A doctor's own dashboard (no patient open) is just booked sessions and patients:
-  // every tab would be disabled there, so the bottom nav is left out.
-  const showNav = Boolean(patient) || showLog;
-  const unread = access && can?.receive_alerts ? await countUnread(access.patient.id, access.membership.role) : null;
-
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-x-clip">
-      <header className="no-print relative flex h-16 items-center gap-2 pr-3 pl-4">
-        <CornerLeaf className="-top-20 -right-20" />
-        <PulseMark className="size-10" />
-        <div className="relative min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 font-heading text-xs leading-none font-semibold tracking-[0.08em] text-violet uppercase">
-            {t("app.name")}
-            {access?.patient.synthetic ? (
-              <span className="rounded-full bg-warning/40 px-1.5 py-px text-[0.65rem] tracking-normal text-warning-foreground normal-case">
-                {t("demo.synthetic")}
-              </span>
-            ) : null}
-          </p>
-          <p className="mt-0.5 truncate font-heading text-base leading-tight font-semibold text-plum">
-            {patient?.name ?? t("app.tagline")}
-          </p>
-        </div>
-        {patient && unread !== null ? <AlertBell patientId={patient.id} initialCount={unread} /> : null}
-        <AppMenu>
-          <Link
-            href="/help"
-            className="mb-3 flex h-14 items-center gap-3.5 rounded-xl bg-alert-wash px-3 text-base font-semibold text-alert-ink"
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg bg-white text-alert">
-              <LifeBuoyIcon className="size-5" aria-hidden />
-            </span>
-            {t("help.menu")}
+    <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
+      <a href="#main" className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+        Skip to content
+      </a>
+      <aside className="no-print sticky top-0 hidden h-dvh flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+        <div className="flex h-18 items-center px-5">
+          <Link href="/dashboard" className="rounded-lg" aria-label="Pulse home">
+            <Logo />
           </Link>
-          <MenuLink href="/select-condition" icon={HeartPulseIcon}>
-            {t("choose.title")}
-          </MenuLink>
-          <MenuLink href="/pcos" icon={HeartPulseIcon}>
-            PCOS Companion
-          </MenuLink>
-          {patient && can?.view_insights ? (
-            <MenuLink href={`/p/${patient.id}/insights`} icon={LineChartIcon}>
-              {t("insights.title")}
-            </MenuLink>
-          ) : null}
-          {patient && can?.receive_alerts ? (
-            <MenuLink href={`/p/${patient.id}/alerts`} icon={BellIcon}>
-              {t("alerts.title")}
-            </MenuLink>
-          ) : null}
-          {patient && can?.create_share_link ? (
-            <MenuLink href={`/p/${patient.id}/share`} icon={StethoscopeIcon}>
-              {t("share.title")}
-            </MenuLink>
-          ) : null}
-          {patient && can?.answer_mood ? (
-            <MenuLink href={`/p/${patient.id}/check`} icon={SunIcon}>
-              {t("check.menu")}
-            </MenuLink>
-          ) : null}
-          {patient && can?.edit_patient ? (
-            <MenuLink href={`/p/${patient.id}/settings`} icon={SettingsIcon}>
-              {t("settings.title")}
-            </MenuLink>
-          ) : null}
-          <PushToggle />
-          <LanguageSwitch className="my-4" />
-          <SignOutButton />
-        </AppMenu>
-      </header>
-      <main className={cn("relative flex-1 px-4 pt-3", showNav ? "pb-32" : "pb-10")}>{children}</main>
-      {showNav ? <BottomNav patientId={patient?.id ?? null} canLog={showLog} /> : null}
+        </div>
+        <SidebarNav members={members} />
+        <div className="border-t border-sidebar-border p-4">
+          <p className="truncate text-sm font-medium">{familyName}</p>
+          <p className="text-xs text-muted-foreground">Encrypted records · Consent-based sharing</p>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-col">
+        {viewingAs && (
+          <div role="status" className="no-print flex items-center justify-center gap-3 border-b border-warning-border bg-warning-soft px-4 py-2 text-sm text-warning">
+            <Eye className="size-4 shrink-0" aria-hidden="true" />
+            <span>
+              Previewing as <strong className="font-semibold">{ROLE_LABEL[viewingAs]}</strong>. Permissions are applied for real.
+            </span>
+            <ExitPreviewButton />
+          </div>
+        )}
+        <header className="no-print sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur supports-backdrop-filter:bg-background/75">
+          <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6 lg:h-18 lg:px-8">
+            <Link href="/dashboard" className="rounded-lg lg:hidden" aria-label="Pulse home">
+              <LogoMark />
+            </Link>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="hidden truncate text-base font-medium sm:inline">{familyName}</span>
+              <RoleBadge role={role} />
+            </div>
+            <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              {actualRole === "admin" && <ViewAsSwitcher current={role} className="hidden md:inline-flex" />}
+              <NotificationsMenu items={notifications} unread={unread} />
+              <ThemeToggle />
+              <UserMenu {...user} />
+            </div>
+          </div>
+          {actualRole === "admin" && (
+            <div className="border-t border-border px-4 py-2 md:hidden">
+              <ViewAsSwitcher current={role} className="w-full justify-center" />
+            </div>
+          )}
+        </header>
+        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-28 sm:px-6 sm:pt-8 lg:px-8 lg:pb-16">
+          {children}
+        </main>
+      </div>
+      <BottomTabs members={members} />
     </div>
   );
 }
+

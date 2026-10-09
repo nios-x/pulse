@@ -1,52 +1,41 @@
 import type { Metadata, Viewport } from "next";
-import { Mukta, Poppins } from "next/font/google";
-import { I18nProvider } from "@/components/i18n-provider";
-import { ServiceWorkerRegister } from "@/components/sw-register";
-import { getLocale } from "@/lib/i18n-server";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/providers/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-// Mukta covers both Devanagari and Latin, so Hindi and English share one font.
-const mukta = Mukta({
-  variable: "--font-mukta",
-  subsets: ["devanagari", "latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-// Poppins is the geometric display voice (headings, numbers, buttons); it ships Devanagari too.
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["devanagari", "latin"],
-  weight: ["500", "600", "700"],
-});
-
-// Every screen depends on the language cookie and the signed-in user,
-// so the app renders per request instead of from a static shell.
-export const instant = false;
+const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Pulse",
-  description: "Sugar care for the whole family",
+  title: { default: "Pulse · Family health, in one place", template: "%s · Pulse" },
+  description:
+    "One place for a family to manage everyone's health: records, medicines, appointments and emergency info, with role-based access for each member.",
   applicationName: "Pulse",
-  appleWebApp: { capable: true, title: "Pulse", statusBarStyle: "default" },
-  icons: {
-    icon: [{ url: "/icons/pulse.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192" }],
-    apple: "/icons/apple-touch-icon.png",
-  },
+  icons: { icon: "/icons/pulse.svg" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#7b3ff2",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf8f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#141a20" },
+  ],
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const locale = await getLocale();
+// Applies the saved theme (or the OS preference) before first paint, so there is no flash.
+const themeScript = `(function(){try{var t=localStorage.getItem('pulse-theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})()`;
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={locale} className={`${mukta.variable} ${poppins.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-base">
-        <I18nProvider locale={locale}>{children}</I18nProvider>
-        <ServiceWorkerRegister />
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-dvh">
+        <TooltipProvider delay={150}>{children}</TooltipProvider>
+        <Toaster />
       </body>
     </html>
   );

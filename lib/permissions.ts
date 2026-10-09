@@ -1,186 +1,209 @@
-import { cache } from "react";
-import { forbidden } from "next/navigation";
-import { and, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { memberships, patients, type Role, type Scope } from "@/db/schema";
-import { requireUser } from "@/lib/auth";
-
-export const ROLES = ["owner", "caregiver", "family", "doctor"] as const satisfies readonly Role[];
-export const SCOPES = ["vitals", "meds", "meals", "mood"] as const satisfies readonly Scope[];
-
-export const PERMISSIONS = [
-  "view_summary", // today's summary
-  "view_vitals", // sugar readings and trends
-  "view_meals",
-  "view_meds", // 7-day dose grid and adherence
-  "log_glucose",
-  "manage_meds", // add or edit medicines
-  "mark_dose",
-  "log_meals",
-  "log_checkin", // walked today, sleep
-  "log_labs", // HbA1c
-  "edit_patient", // name and sugar limits, on the doctor's instruction
-  "view_mood",
-  "answer_mood",
-  "view_insights",
-  "receive_alerts",
-  "manage_members", // invite, remove, change roles
-  "create_share_link",
-  "delete_patient",
-  "start_call", // in-app calls, only ever between a doctor and the family (see canCallBetween)
-  "book_call", // ask the doctor for a call at a set time
-  "answer_booking", // the doctor accepts or declines a booked call
-] as const;
-export type Permission = (typeof PERMISSIONS)[number];
-
-export type MembershipLike = { role: Role; scopes: readonly Scope[] };
-export type PermissionContext = { patientHasOwner: boolean };
-
-/** What each role may do at all. Copied from the "Family roles and permissions" table. */
-export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  owner: PERMISSIONS.filter((p) => p !== "answer_booking"),
-  caregiver: [
-    "view_summary",
-    "view_vitals",
-    "view_meals",
-    "view_meds",
-    "log_glucose",
-    "manage_meds",
-    "mark_dose",
-    "log_meals",
-    "log_checkin",
-    "log_labs",
-    "edit_patient",
-    "view_mood",
-    "view_insights",
-    "receive_alerts",
-    "manage_members",
-    "create_share_link",
-    "start_call",
-    "book_call",
-  ],
-  family: [
-    "view_summary",
-    "view_vitals",
-    "view_meals",
-    "view_meds",
-    "mark_dose",
-    "log_meals",
-    "log_checkin",
-    "receive_alerts",
-    "start_call",
-  ],
-  // A doctor joins by invite and only reads what the patient shares, answers booked
-  // calls and calls the family. Never writes to the profile or manages the family.
-  doctor: ["view_summary", "view_vitals", "view_meals", "view_meds", "view_mood", "view_insights", "start_call", "answer_booking"],
-};
+import type { PermissionOverrides, Role } from "@/db/schema";
 
 /**
- * In-app calls connect the family with their doctor, never family members with
- * each other: exactly one side of a call must be the doctor.
+ * Role-based access, pure and shared by server and client.
+ * The server enforces every check (lib/context.ts → requireCan); the client uses
+ * the same function only to hide or disable controls and explain why.
  */
-export function canCallBetween(callerRole: Role, calleeRole: Role): boolean {
-  return (callerRole === "doctor") !== (calleeRole === "doctor");
-}
 
-/** Scopes a non-owner member must hold for a permission. The owner is never limited by scopes. */
-export const PERMISSION_SCOPE: Partial<Record<Permission, readonly Scope[]>> = {
-  view_vitals: ["vitals"],
-  view_meals: ["meals"],
-  view_meds: ["meds"],
-  view_mood: ["mood"],
-  view_insights: ["vitals", "meals"],
-  receive_alerts: ["vitals"],
+export const ROLES: Role[] = ["admin", "caregiver", "member", "viewer"];
+
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: "Admin",
+  caregiver: "Caregiver",
+  member: "Member",
+  viewer: "Viewer",
 };
 
-/** Caregivers always hear about a dangerous reading, even without the vitals scope. */
-const SCOPE_EXEMPT: Partial<Record<Role, readonly Permission[]>> = {
-  caregiver: ["receive_alerts"],
+export const ROLE_SUMMARY: Record<Role, string> = {
+  admin: "Full control of the family, members and settings",
+  caregiver: "Views and updates medicines and appointments for the people assigned to them",
+  member: "Sees and manages only their own health profile",
+  viewer: "Can look at everything but cannot change anything",
 };
 
-/** Pure check, no database. */
-export function can(
-  membership: MembershipLike | null | undefined,
-  permission: Permission,
-  ctx: PermissionContext
-): boolean {
-  if (!membership) return false;
-  const { role, scopes } = membership;
-  if (!ROLE_PERMISSIONS[role].includes(permission)) return false;
-  if (role === "owner") return true;
+export type Action =
+  | "member.view"
+  | "member.edit"
+  | "member.add"
+  | "meds.manage"
+  | "doses.log"
+  | "vitals.log"
+  | "appointments.manage"
+  | "records.view"
+  | "records.upload"
+  | "sharing.manage"
+  | "triage.use"
+  | "family.manage";
 
-  // A caregiver who set up the profile manages the family only until the patient joins.
-  if (permission === "manage_members" && role === "caregiver" && ctx.patientHasOwner) return false;
+export const ACTIONS: { key: Action; label: string; description: string }[] = [
+  { key: "member.view", label: "See health profiles", description: "Vitals, medicines, conditions and allergies" },
+  { key: "member.edit", label: "Edit health profiles", description: "Allergies, conditions, blood group, contacts" },
+  { key: "member.add", label: "Add family members", description: "Create new health profiles" },
+  { key: "meds.manage", label: "Add or change medicines", description: "Schedules, refills, stopping a medicine" },
+  { key: "doses.log", label: "Mark doses taken", description: "Tick off today's medicines" },
+  { key: "vitals.log", label: "Record vitals", description: "BP, sugar, weight and more" },
+  { key: "appointments.manage", label: "Book and edit appointments", description: "Clinic visits and video consults" },
+  { key: "records.view", label: "Open health records", description: "Reports, prescriptions, scans" },
+  { key: "records.upload", label: "Upload records", description: "Add reports and scan prescriptions" },
+  { key: "sharing.manage", label: "Share with doctors", description: "Time-limited links and the emergency card QR" },
+  { key: "triage.use", label: "Use symptom check", description: "AI-assisted triage with safety rules" },
+  { key: "family.manage", label: "Manage family and roles", description: "Invites, roles and this permissions table" },
+];
 
-  if (SCOPE_EXEMPT[role]?.includes(permission)) return true;
-  const needed = PERMISSION_SCOPE[permission] ?? [];
-  return needed.every((scope) => scopes.includes(scope));
+export const DEFAULT_PERMISSIONS: Record<Role, Record<Action, boolean>> = {
+  admin: {
+    "member.view": true,
+    "member.edit": true,
+    "member.add": true,
+    "meds.manage": true,
+    "doses.log": true,
+    "vitals.log": true,
+    "appointments.manage": true,
+    "records.view": true,
+    "records.upload": true,
+    "sharing.manage": true,
+    "triage.use": true,
+    "family.manage": true,
+  },
+  caregiver: {
+    "member.view": true,
+    "member.edit": false,
+    "member.add": false,
+    "meds.manage": true,
+    "doses.log": true,
+    "vitals.log": true,
+    "appointments.manage": true,
+    "records.view": true,
+    "records.upload": true,
+    "sharing.manage": false,
+    "triage.use": true,
+    "family.manage": false,
+  },
+  member: {
+    "member.view": true,
+    "member.edit": true,
+    "member.add": false,
+    "meds.manage": true,
+    "doses.log": true,
+    "vitals.log": true,
+    "appointments.manage": true,
+    "records.view": true,
+    "records.upload": true,
+    "sharing.manage": true,
+    "triage.use": true,
+    "family.manage": false,
+  },
+  viewer: {
+    "member.view": true,
+    "member.edit": false,
+    "member.add": false,
+    "meds.manage": false,
+    "doses.log": false,
+    "vitals.log": false,
+    "appointments.manage": false,
+    "records.view": true,
+    "records.upload": false,
+    "sharing.manage": false,
+    "triage.use": false,
+    "family.manage": false,
+  },
+};
+
+/** Cells nobody can toggle: the admin row (so nobody locks the family out) and family.manage. */
+export function isLocked(role: Role, action: Action): boolean {
+  return role === "admin" || action === "family.manage";
 }
 
-export type PermissionMap = Record<Permission, boolean>;
+/** Viewers may only ever read: these actions can never be turned on for them. */
+const READ_ACTIONS: Action[] = ["member.view", "records.view"];
 
-/** Every permission at once, for hiding UI the member cannot use. */
-export function permissionMap(
-  membership: MembershipLike | null | undefined,
-  ctx: PermissionContext
-): PermissionMap {
-  return Object.fromEntries(PERMISSIONS.map((p) => [p, can(membership, p, ctx)])) as PermissionMap;
+export function canToggle(role: Role, action: Action): boolean {
+  if (isLocked(role, action)) return false;
+  if (role === "viewer" && !READ_ACTIONS.includes(action)) return false;
+  return true;
 }
 
-/** Whether the Log screen has anything for this member (doctors only read). */
-export function canLog(map: PermissionMap): boolean {
-  return map.log_glucose || map.log_meals || map.log_checkin;
+export type AccessContext = {
+  role: Role;
+  /** The signed-in person's own health profile in this family. */
+  selfMemberId: string | null;
+  /** Caregivers only. */
+  assignedMemberIds: string[];
+  overrides: PermissionOverrides;
+};
+
+export function roleAllows(role: Role, action: Action, overrides: PermissionOverrides): boolean {
+  if (isLocked(role, action)) return DEFAULT_PERMISSIONS[role][action];
+  const override = overrides[role]?.[action];
+  if (typeof override === "boolean" && canToggle(role, action)) return override;
+  return DEFAULT_PERMISSIONS[role][action];
 }
 
-/** Default scopes offered when inviting someone with this role. Mood is always off. */
-export function defaultScopes(role: Role): Scope[] {
-  if (role === "owner") return [...SCOPES];
-  if (role === "caregiver" || role === "doctor") return ["vitals", "meds", "meals"];
-  return ["meals"];
+/** Which members a role can reach at all. */
+export function inScope(ctx: AccessContext, memberId: string): boolean {
+  switch (ctx.role) {
+    case "admin":
+    case "viewer":
+      return true;
+    case "caregiver":
+      return memberId === ctx.selfMemberId || ctx.assignedMemberIds.includes(memberId);
+    case "member":
+      return memberId === ctx.selfMemberId;
+  }
 }
 
-// ---------- Server side: the real gate ----------
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function isUuid(value: unknown): value is string {
-  return typeof value === "string" && UUID_RE.test(value);
+/** Family-wide actions (no member) only check the role; member actions also check scope. */
+export function can(ctx: AccessContext, action: Action, memberId?: string | null): boolean {
+  if (!roleAllows(ctx.role, action, ctx.overrides)) return false;
+  if (memberId == null) return true;
+  return inScope(ctx, memberId);
 }
 
-const loadAccess = cache(async (patientId: string, userId: string) => {
-  const [row] = await db
-    .select({ membership: memberships, patient: patients })
-    .from(memberships)
-    .innerJoin(patients, eq(memberships.patientId, patients.id))
-    .where(and(eq(memberships.patientId, patientId), eq(memberships.userId, userId)))
-    .limit(1);
-  if (!row) return null;
-  const [owner] = await db
-    .select({ id: memberships.id })
-    .from(memberships)
-    .where(and(eq(memberships.patientId, patientId), eq(memberships.role, "owner")))
-    .limit(1);
-  const ctx: PermissionContext = { patientHasOwner: Boolean(owner) };
-  return { ...row, ctx, permissions: permissionMap(row.membership, ctx) };
-});
-
-/**
- * Reads the session, loads the membership and calls can().
- * Renders the 403 page (or answers 403 to a Server Action) when not allowed.
- * Call it first in every page and Server Action under /p/[patientId].
- */
-export async function requirePermission(patientId: string, permission: Permission) {
-  const user = await requireUser();
-  if (!isUuid(patientId)) forbidden();
-  const access = await loadAccess(patientId, user.id);
-  if (!access || !can(access.membership, permission, access.ctx)) forbidden();
-  return { user, ...access };
+/** Plain-language reason for a disabled control, or null when allowed. */
+export function denialReason(ctx: AccessContext, action: Action, memberId?: string | null): string | null {
+  if (can(ctx, action, memberId)) return null;
+  const roleName = ROLE_LABEL[ctx.role];
+  if (!roleAllows(ctx.role, action, ctx.overrides)) {
+    if (ctx.role === "viewer") return "Viewers can look but not make changes. Ask your family admin for more access.";
+    if (action === "family.manage") return "Only the family admin can manage members and roles.";
+    const changed = typeof ctx.overrides[ctx.role]?.[action] === "boolean";
+    return changed
+      ? `Your family admin has turned this off for ${roleName.toLowerCase()}s.`
+      : `${roleName}s can't do this. Ask your family admin.`;
+  }
+  if (ctx.role === "caregiver") return "Caregivers can only update the people assigned to them.";
+  if (ctx.role === "member") return "Members can only change their own health profile.";
+  return "You don't have access to this.";
 }
 
-/** Same lookup as requirePermission, but returns null instead of a 403 (for optional UI). */
-export async function getAccess(patientId: string) {
-  const user = await requireUser();
-  if (!isUuid(patientId)) return null;
-  const access = await loadAccess(patientId, user.id);
-  return access ? { user, ...access } : null;
+/** Merge a single toggle into the stored overrides, rejecting locked cells. */
+export function applyToggle(
+  overrides: PermissionOverrides,
+  role: Role,
+  action: Action,
+  allowed: boolean
+): PermissionOverrides {
+  if (!canToggle(role, action)) throw new Error("This permission cannot be changed");
+  const next: PermissionOverrides = structuredClone(overrides);
+  const roleMap = { ...(next[role] ?? {}) };
+  if (allowed === DEFAULT_PERMISSIONS[role][action]) delete roleMap[action];
+  else roleMap[action] = allowed;
+  next[role] = roleMap;
+  return next;
+}
+
+/** The effective matrix for display. */
+export function effectiveMatrix(overrides: PermissionOverrides): Record<Role, Record<Action, boolean>> {
+  const out = {} as Record<Role, Record<Action, boolean>>;
+  for (const role of ROLES) {
+    out[role] = {} as Record<Action, boolean>;
+    for (const { key } of ACTIONS) out[role][key] = roleAllows(role, key, overrides);
+  }
+  return out;
+}
+
+/** Roles an admin may assign; you can't demote the last admin (checked server-side). */
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as string[]).includes(value);
 }

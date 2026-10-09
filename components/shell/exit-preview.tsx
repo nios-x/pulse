@@ -1,26 +1,18 @@
 "use client";
 
 import { useTransition } from "react";
-import { setViewAsAction } from "@/app/actions/view-as";
-import { useT } from "@/components/i18n-provider";
-import { toast } from "@/components/ui/toast";
+import { setViewAs } from "@/app/actions/session";
 
 export function ExitPreviewButton() {
-  const t = useT();
   const [pending, start] = useTransition();
   return (
     <button
       type="button"
+      onClick={() => start(() => setViewAs(null))}
       disabled={pending}
-      onClick={() =>
-        start(async () => {
-          await setViewAsAction({ role: null });
-          toast.add({ type: "info", title: t("viewAs.reset") });
-        })
-      }
-      className="min-h-11 rounded-lg px-2 font-semibold underline decoration-sage/50 underline-offset-4 hover:decoration-sage"
+      className="min-h-9 cursor-pointer rounded-md px-2 font-semibold underline underline-offset-4 hover:no-underline"
     >
-      {t("viewAs.exit")}
+      Exit preview
     </button>
   );
 }

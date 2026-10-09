@@ -1,172 +1,173 @@
 import type { Metadata } from "next";
-import { HeartPulseIcon, LinkIcon } from "lucide-react";
-import { FastingChart } from "@/components/charts/fasting-chart";
-import { insightText } from "@/components/insights/insight-card";
-import { PrintButton } from "@/components/share/print-button";
-import { createT, type Locale } from "@/lib/i18n";
-import { istDate } from "@/lib/dates";
-import { formatDay } from "@/lib/format";
-import { getSavedLocale } from "@/lib/i18n-server";
-import { now } from "@/lib/now";
-import { safetyText } from "@/lib/safety";
-import { loadShareSummary, SUMMARY_DAYS } from "@/lib/share";
+import Link from "next/link";
+import { Clock, FileText, Lock, ShieldOff } from "lucide-react";
+import { LogoMark } from "@/components/brand/logo";
+import { EmergencyCard } from "@/components/emergency/emergency-card";
+import { SafetyNote } from "@/components/health/safety-note";
+import { StatusBadge, vitalTone } from "@/components/health/status-badge";
+import { getAppointments, getDoseLogs, getMeds, getRecords, getVitals, latestByKind } from "@/lib/data";
+import { addDays, formatDate, formatDateTime, formatTime, istDate } from "@/lib/dates";
+import { emergencyData } from "@/lib/emergency";
+import { RECORD_TYPE_LABEL } from "@/lib/labels";
+import { adherence } from "@/lib/meds";
+import { resolveShare } from "@/lib/share";
+import { classify, formatReading, VITAL_META } from "@/lib/vitals";
+import { audit } from "@/lib/audit";
+import type { VitalKind } from "@/db/schema";
 
-export const metadata: Metadata = {
-  title: "Pulse · patient summary",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export const metadata: Metadata = { title: "Shared health information", robots: { index: false, follow: false } };
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="sheet rounded-xl px-3 py-2 print:py-1.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-2xl font-bold tabular-nums print:text-xl">{value}</p>
-      {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
-    </div>
-  );
-}
-
-/** Doctor view: no login, read-only, one A4 page, readable in about 30 seconds. */
-export default async function DoctorSummaryPage({ params }: PageProps<"/share/[token]">) {
+export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  // Doctors usually read English; a saved language choice still wins.
-  const locale: Locale = (await getSavedLocale()) ?? "en";
-  const t = createT(locale);
-  const summary = await loadShareSummary(token, await now());
+  const state = await resolveShare(token, true);
 
-  if (!summary) {
+  if (state.status !== "ok") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-start justify-center gap-3 px-4">
-        <LinkIcon className="size-10 text-muted-foreground" aria-hidden />
-        <h1 className="text-[2rem] leading-tight">{t("share.inactive")}</h1>
-        <p className="text-muted-foreground">{t("share.inactiveBody")}</p>
-      </main>
+      <Shell>
+        <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-20 text-center">
+          <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><ShieldOff className="size-7" aria-hidden="true" /></span>
+          <h1 className="text-2xl font-semibold">{state.status === "expired" ? "This link has expired" : state.status === "revoked" ? "This link was turned off" : "Link not found"}</h1>
+          <p className="text-base text-muted-foreground">Shared health links only work for a limited time. Ask the family for a new link.</p>
+        </div>
+      </Shell>
     );
   }
 
-  const { patient } = summary;
-  const age = patient.birthYear ? Number(summary.today.slice(0, 4)) - patient.birthYear : null;
-  const day = (d: string) => formatDay(d, locale);
-  const series = summary.series.map((p) => ({ ...p, label: day(p.date) }));
+  const { link, member } = state;
+  await audit(link.familyId, null, "share.viewed", { label: link.label, scope: link.scope });
+  const expires = `Link works until ${formatDateTime(link.expiresAt)}`;
+
+  if (link.scope === "emergency") {
+    const data = await emergencyData(member);
+    return (
+      <Shell note={expires}>
+        <EmergencyCard data={data} className="mx-auto w-full max-w-4xl" />
+      </Shell>
+    );
+  }
+
+  const now = { instant: new Date(), date: istDate(), time: "23:59" };
+  const [data, meds, vitals, logs, appts, recs] = await Promise.all([
+    emergencyData(member),
+    getMeds([member.id]),
+    getVitals([member.id], 90),
+    getDoseLogs([member.id], addDays(istDate(), -30), istDate()),
+    getAppointments([member.id], { from: new Date(), status: "scheduled" }),
+    link.scope === "records" ? getRecords([member.id]) : Promise.resolve([]),
+  ]);
+  const latest = latestByKind(vitals).get(member.id) ?? new Map();
+  const adh = adherence(meds, logs, now, 30);
+  const avg = (kind: VitalKind, ctxFilter?: string) => {
+    const rows = vitals.filter((v) => v.kind === kind && (!ctxFilter || v.context === ctxFilter) && v.measuredAt.getTime() > Date.now() - 30 * 86_400_000);
+    if (!rows.length) return null;
+    const a = rows.reduce((s, v) => s + Number(v.value), 0) / rows.length;
+    const b = rows.reduce((s, v) => s + Number(v.value2 ?? 0), 0) / rows.length;
+    return { value: a, value2: kind === "bp" ? b : null, n: rows.length };
+  };
+  const bpAvg = avg("bp");
+  const fastAvg = avg("sugar", "fasting");
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 text-sm print:max-w-none print:gap-3 print:p-0">
-      <header className="flex items-start justify-between gap-3 border-b pb-3">
-        <div>
-          <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
-            <HeartPulseIcon className="size-4" aria-hidden />
-            {t("doctor.kicker", { days: SUMMARY_DAYS })}
-          </p>
-          <h1 className="text-2xl font-bold">{patient.name}</h1>
-          {patient.synthetic ? (
-            <p className="mt-0.5 inline-block rounded bg-warning/40 px-1.5 text-xs font-medium text-warning-foreground">
-              {t("demo.syntheticLong")}
-            </p>
-          ) : null}
-          <p className="text-muted-foreground">
-            {[age ? t("doctor.age", { age }) : null, patient.city, t("doctor.condition")].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-        <div className="text-right text-xs text-muted-foreground">
-          <p>{t("doctor.period", { from: day(summary.from), to: day(summary.today) })}</p>
-          <p>{t("doctor.validUntil", { date: day(istDate(summary.link.expiresAt)) })}</p>
-          <div className="mt-2">
-            <PrintButton label={t("doctor.print")} />
+    <Shell note={expires}>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <header className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Health summary shared by the family · {link.label}</p>
+          <h1 className="text-[2rem] leading-tight font-semibold">{member.name}</h1>
+          <p className="text-lg">{[data.age != null ? `${data.age} years` : null, data.sex, data.bloodGroup ? `Blood group ${data.bloodGroup}` : null].filter(Boolean).join(" · ")}</p>
+        </header>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-danger-border bg-danger-soft/60 p-5">
+            <h2 className="text-sm font-bold tracking-wider text-danger uppercase">Allergies</h2>
+            {data.allergies.length ? data.allergies.map((a) => <p key={a.name} className="mt-1 text-lg font-semibold">{a.name} <span className="text-base font-normal">({a.severity}{a.reaction ? `: ${a.reaction}` : ""})</span></p>) : <p className="mt-1 text-lg">No known allergies</p>}
           </div>
-        </div>
-      </header>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-bold tracking-wider uppercase">Conditions</h2>
+            {data.conditions.length ? data.conditions.map((c) => <p key={c.name} className="mt-1 text-lg">{c.name}{c.since ? <span className="text-muted-foreground"> · since {c.since}</span> : null}</p>) : <p className="mt-1 text-lg">None recorded</p>}
+          </div>
+        </section>
 
-      <section aria-label={t("doctor.keyNumbers")} className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
-        <Stat
-          label={t("doctor.fastingAvg")}
-          value={summary.fastingAvg ? `${summary.fastingAvg}` : "–"}
-          note={t("doctor.mgdlReadings", { count: summary.fastingCount })}
-        />
-        <Stat
-          label={t("doctor.inRange")}
-          value={summary.inRangePercent === null ? "–" : `${summary.inRangePercent}%`}
-          note={t("doctor.inRangeNote", { low: patient.glucoseLow, high: patient.glucoseHigh, count: summary.readingCount })}
-        />
-        <Stat
-          label={t("doctor.adherence")}
-          value={summary.adherence.percent === null ? "–" : `${summary.adherence.percent}%`}
-          note={t("doctor.adherenceNote", { taken: summary.adherence.taken, total: summary.adherence.taken + summary.adherence.missed })}
-        />
-        <Stat
-          label={t("doctor.alerts")}
-          value={`${summary.alerts.urgent + summary.alerts.warning}`}
-          note={t("doctor.alertsNote", { urgent: summary.alerts.urgent, warning: summary.alerts.warning })}
-        />
-      </section>
+        <section className="rounded-xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">Current medicines</h2>
+            <p className="text-[0.9375rem] text-muted-foreground">30-day adherence: <span className="font-semibold text-foreground">{adh.percent != null ? `${adh.percent}%` : "—"}</span> ({adh.taken} of {adh.due} doses)</p>
+          </div>
+          <table className="mt-3 w-full text-left text-[0.9375rem]">
+            <thead className="text-sm text-muted-foreground"><tr><th className="py-2 font-medium">Medicine</th><th className="py-2 font-medium">Schedule</th><th className="hidden py-2 font-medium sm:table-cell">Prescribed by</th></tr></thead>
+            <tbody className="divide-y divide-border">
+              {meds.map((m) => (
+                <tr key={m.id}>
+                  <td className="py-2.5 pr-3"><span className="font-semibold">{m.name}</span> {m.strength}<span className="block text-sm text-muted-foreground">{m.genericName}</span></td>
+                  <td className="py-2.5 pr-3">{m.times.map((t) => formatTime(t)).join(", ")}<span className="block text-sm text-muted-foreground">{m.instructions}</span></td>
+                  <td className="hidden py-2.5 sm:table-cell">{m.prescribedBy ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
 
-      <section aria-labelledby="chart-h" className="sheet rounded-xl p-3 print:break-inside-avoid">
-        <h2 id="chart-h" className="mb-1 font-semibold">
-          {t("doctor.chartTitle", { days: SUMMARY_DAYS })}
-        </h2>
-        <FastingChart
-          data={series}
-          low={patient.glucoseLow}
-          high={patient.glucoseHigh}
-          seriesLabel={t("insights.fastingMgdl")}
-          bandLabel={t("insights.targetRange")}
-          dense
-          className="h-48 print:h-40"
-        />
-      </section>
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h2 className="text-lg font-semibold">Vitals</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {(["bp", "sugar", "weight", "pulse", "spo2", "temperature"] as VitalKind[]).filter((k) => latest.has(k)).map((k) => {
+              const v = latest.get(k)!;
+              const c = classify(v);
+              return (
+                <div key={k} className="rounded-lg border border-border p-3.5">
+                  <p className="text-sm text-muted-foreground">{VITAL_META[k].label} · latest</p>
+                  <p className="text-xl font-semibold tabular">{formatReading(v)} <span className="text-sm font-normal text-muted-foreground">{VITAL_META[k].unit}</span></p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">{k !== "weight" && <StatusBadge {...vitalTone(c.status)} label={c.label} size="sm" />}<span className="text-xs text-muted-foreground">{formatDate(v.measuredAt)}</span></div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-[0.9375rem]">
+            30-day averages:{" "}
+            {bpAvg ? <span className="font-medium">BP {Math.round(bpAvg.value)}/{Math.round(bpAvg.value2 ?? 0)} ({bpAvg.n} readings)</span> : "BP —"}
+            {" · "}
+            {fastAvg ? <span className="font-medium">fasting sugar {Math.round(fastAvg.value)} mg/dL ({fastAvg.n} readings)</span> : "fasting sugar —"}
+          </p>
+          <SafetyNote className="mt-3">Values recorded by the family at home. Labels use general adult ranges. Not a diagnosis.</SafetyNote>
+        </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
-        <section aria-labelledby="hba1c-h" className="sheet rounded-xl p-3">
-          <h2 id="hba1c-h" className="mb-1 font-semibold">
-            HbA1c
-          </h2>
-          {summary.labs.length ? (
-            <ul className="flex flex-col gap-0.5">
-              {summary.labs.map((l) => (
-                <li key={l.takenOn} className="flex justify-between tabular-nums">
-                  <span>{day(l.takenOn)}</span>
-                  <span className="font-semibold">{l.value}%</span>
+        {appts.length > 0 && (
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-lg font-semibold">Upcoming appointments</h2>
+            <ul className="mt-2 divide-y divide-border">{appts.map((a) => <li key={a.id} className="py-2.5 text-[0.9375rem]"><span className="font-medium">{a.doctorName}</span> · {formatDateTime(a.startsAt)} · {a.reason ?? a.specialty}</li>)}</ul>
+          </section>
+        )}
+
+        {link.scope === "records" && (
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-lg font-semibold">Records</h2>
+            <ul className="mt-2 divide-y divide-border">
+              {recs.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+                  <span><span className="block font-medium">{r.title}</span><span className="text-sm text-muted-foreground">{RECORD_TYPE_LABEL[r.type]} · {formatDate(r.recordDate)}{r.provider ? ` · ${r.provider}` : ""}</span></span>
+                  {r.mimeType && <a href={`/share/${token}/file/${r.id}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border px-3 text-[0.9375rem] font-medium hover:bg-muted"><FileText className="size-4" aria-hidden="true" /> Open</a>}
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="text-muted-foreground">{t("doctor.noLabs")}</p>
-          )}
-        </section>
-
-        <section aria-labelledby="ins-h" className="sheet rounded-xl p-3">
-          <h2 id="ins-h" className="mb-1 font-semibold">
-            {t("doctor.patterns")}
-          </h2>
-          {summary.insights.length ? (
-            <ul className="flex list-disc flex-col gap-1 pl-4">
-              {summary.insights.map((i) => (
-                <li key={i.kind}>{insightText(i, t, locale).body}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">{t("doctor.noPatterns")}</p>
-          )}
-        </section>
+          </section>
+        )}
       </div>
+    </Shell>
+  );
+}
 
-      {summary.link.includeMood ? (
-        <section aria-labelledby="mood-h" className="sheet rounded-xl p-3">
-          <h2 id="mood-h" className="mb-1 font-semibold">
-            {t("doctor.moodTitle")}
-          </h2>
-          <p>
-            {summary.mood
-              ? t("doctor.moodScore", { score: summary.mood.score, date: day(istDate(summary.mood.checkedAt)) })
-              : t("doctor.noMood")}
-          </p>
-        </section>
-      ) : null}
-
-      <footer className="border-t pt-2 text-xs text-muted-foreground">
-        <p>{t("doctor.footer")}</p>
-        <p>{safetyText("insight_disclaimer", locale)}</p>
+function Shell({ children, note }: { children: React.ReactNode; note?: string }) {
+  return (
+    <div className="min-h-dvh bg-background">
+      <header className="no-print border-b border-border bg-card">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 rounded-lg"><LogoMark className="size-8" /><span className="text-base font-semibold">Pulse</span></Link>
+          {note && <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Clock className="size-4" aria-hidden="true" /> {note}</p>}
+        </div>
+      </header>
+      <main className="px-4 py-8 sm:px-6">{children}</main>
+      <footer className="no-print mx-auto flex max-w-5xl items-center gap-2 px-4 pb-8 text-sm text-muted-foreground sm:px-6">
+        <Lock className="size-4" aria-hidden="true" /> Shared with consent through a private, time-limited link. Please don&apos;t forward it.
       </footer>
-    </main>
+    </div>
   );
 }

@@ -1,39 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { ageIn, bpStatus, glucoseStatus, refillStatus } from "@/lib/vitals";
+import { bmi, classify, formatReading, isAlarming } from "./vitals";
 
-const limits = { glucoseLow: 70, glucoseHigh: 300 };
+describe("vitals", () => {
+  it("labels blood pressure", () => {
+    expect(classify({ kind: "bp", value: 116, value2: 76 }).status).toBe("normal");
+    expect(classify({ kind: "bp", value: 128, value2: 82 })).toEqual({ status: "watch", label: "Elevated" });
+    expect(classify({ kind: "bp", value: 150, value2: 95 }).label).toBe("High");
+    expect(classify({ kind: "bp", value: 85, value2: 55 }).status).toBe("low");
+  });
 
-describe("glucoseStatus", () => {
-  it("labels fasting readings", () => {
-    expect(glucoseStatus(112, "fasting", limits)).toEqual({ tone: "ok", label: "inRange" });
-    expect(glucoseStatus(150, "fasting", limits)).toEqual({ tone: "watch", label: "aboveTarget" });
-    expect(glucoseStatus(210, "fasting", limits)).toEqual({ tone: "alert", label: "high" });
+  it("labels sugar by context", () => {
+    expect(classify({ kind: "sugar", value: 110, context: "fasting" }).status).toBe("watch");
+    expect(classify({ kind: "sugar", value: 110, context: "after_meal" }).status).toBe("normal");
+    expect(classify({ kind: "sugar", value: 210, context: "after_meal" }).status).toBe("high");
+    expect(classify({ kind: "sugar", value: 62, context: "random" }).status).toBe("low");
   });
-  it("is kinder after a meal", () => {
-    expect(glucoseStatus(170, "after_meal", limits).tone).toBe("ok");
-  });
-  it("uses the patient's own limits first", () => {
-    expect(glucoseStatus(65, "fasting", limits)).toEqual({ tone: "alert", label: "low" });
-    expect(glucoseStatus(240, "after_meal", { glucoseLow: 70, glucoseHigh: 230 }).label).toBe("high");
-  });
-});
 
-describe("bpStatus", () => {
-  it("follows the home-monitor bands", () => {
-    expect(bpStatus(116, 76).label).toBe("normal");
-    expect(bpStatus(128, 82).label).toBe("slightlyHigh");
-    expect(bpStatus(150, 95)).toEqual({ tone: "alert", label: "high" });
-    expect(bpStatus(185, 100).label).toBe("veryHigh");
-    expect(bpStatus(85, 55).label).toBe("low");
+  it("formats and alarms", () => {
+    expect(formatReading({ kind: "bp", value: 150, value2: 95 })).toBe("150/95");
+    expect(formatReading({ kind: "weight", value: 72.44 })).toBe("72.4");
+    expect(isAlarming({ kind: "bp", value: 150, value2: 95 })).toBe(true);
+    expect(isAlarming({ kind: "bp", value: 125, value2: 80 })).toBe(false);
+    expect(isAlarming({ kind: "spo2", value: 90 })).toBe(true);
   });
-});
 
-describe("helpers", () => {
-  it("works out age and refills", () => {
-    expect(ageIn(1964, "2026-10-09")).toBe(62);
-    expect(ageIn(null, "2026-10-09")).toBeNull();
-    expect(refillStatus(9, 2)).toEqual({ days: 4, tone: "watch" });
-    expect(refillStatus(3, 1).tone).toBe("alert");
-    expect(refillStatus(40, 1).tone).toBe("ok");
+  it("computes BMI", () => {
+    expect(bmi(70, 170)).toBe(24.2);
+    expect(bmi(null, 170)).toBeNull();
   });
 });

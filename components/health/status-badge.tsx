@@ -1,44 +1,72 @@
-import type { ReactNode } from "react";
-import { CircleAlertIcon, CircleCheckIcon, CircleDotIcon, TriangleAlertIcon, type LucideIcon } from "lucide-react";
-import type { Tone } from "@/lib/vitals";
+import { ArrowDown, ArrowUp, CircleCheck, CircleMinus, Clock, TriangleAlert, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TONES: Record<Tone, { icon: LucideIcon; className: string }> = {
-  ok: { icon: CircleCheckIcon, className: "bg-ok-wash text-ok-ink ring-ok/25" },
-  watch: { icon: TriangleAlertIcon, className: "bg-watch-wash text-watch-ink ring-watch/40" },
-  alert: { icon: CircleAlertIcon, className: "bg-alert-wash text-alert-ink ring-alert/25" },
-  neutral: { icon: CircleDotIcon, className: "bg-well text-ink-2 ring-edge" },
+export type Tone = "success" | "warning" | "danger" | "info" | "neutral";
+
+const TONE_CLASS: Record<Tone, string> = {
+  success: "border-success-border bg-success-soft text-success",
+  warning: "border-warning-border bg-warning-soft text-warning",
+  danger: "border-danger-border bg-danger-soft text-danger",
+  info: "border-transparent bg-info-soft text-info",
+  neutral: "border-transparent bg-muted text-muted-foreground",
+};
+
+const DEFAULT_ICON: Record<Tone, LucideIcon> = {
+  success: CircleCheck,
+  warning: TriangleAlert,
+  danger: TriangleAlert,
+  info: Clock,
+  neutral: CircleMinus,
 };
 
 /**
- * A health status: icon + words, never colour alone. "High · 150/95".
- * `size="lg"` for the hero numbers on a member's overview.
+ * Status is never colour alone: always an icon and a word, optionally a value.
+ * e.g. <StatusBadge tone="danger" label="High" value="150/95" />
  */
 export function StatusBadge({
   tone,
-  children,
-  size = "md",
+  label,
+  value,
+  icon,
   className,
+  size = "md",
 }: {
   tone: Tone;
-  children: ReactNode;
-  size?: "sm" | "md" | "lg";
+  label: string;
+  value?: string;
+  icon?: LucideIcon;
   className?: string;
+  size?: "sm" | "md";
 }) {
-  const { icon: Icon, className: toneClass } = TONES[tone];
+  const Icon = icon ?? DEFAULT_ICON[tone];
   return (
     <span
       className={cn(
-        "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full font-medium whitespace-nowrap ring-1 ring-inset tabular",
-        size === "sm" && "h-7 px-2.5 text-sm",
-        size === "md" && "h-8 px-3 text-[0.9375rem]",
-        size === "lg" && "h-10 px-3.5 text-base",
-        toneClass,
+        "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border font-medium whitespace-nowrap",
+        size === "sm" ? "h-6 px-2 text-xs" : "h-7 px-2.5 text-sm",
+        TONE_CLASS[tone],
         className
       )}
     >
-      <Icon className={cn("shrink-0", size === "lg" ? "size-5" : "size-4")} aria-hidden />
-      {children}
+      <Icon className={size === "sm" ? "size-3.5" : "size-4"} aria-hidden="true" />
+      <span>
+        {label}
+        {value && <span className="tabular"> · {value}</span>}
+      </span>
     </span>
   );
+}
+
+/** Maps a vital status to a tone and icon. */
+export function vitalTone(status: "normal" | "watch" | "high" | "low"): { tone: Tone; icon: LucideIcon } {
+  switch (status) {
+    case "normal":
+      return { tone: "success", icon: CircleCheck };
+    case "watch":
+      return { tone: "warning", icon: ArrowUp };
+    case "high":
+      return { tone: "danger", icon: ArrowUp };
+    case "low":
+      return { tone: "danger", icon: ArrowDown };
+  }
 }

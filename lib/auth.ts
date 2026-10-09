@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,12 +6,19 @@ import bcrypt from "bcryptjs";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { randomToken, sha256 } from "@/lib/crypto";
 import { SESSION_COOKIE } from "@/lib/session-cookie";
 
-export { SESSION_COOKIE };
 const SESSION_DAYS = 30;
 
-export type CurrentUser = { id: string; name: string; email: string; phone: string | null; isDoctor: boolean };
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  emailReminders: boolean;
+  dailyDigest: boolean;
+};
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -21,42 +28,12 @@ export function verifyPassword(password: string, hash: string): Promise<boolean>
   return bcrypt.compare(password, hash);
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Inserts a user, hashing the password. Returns the new id, or null if the email is taken. */
-export async function createUser(
-  input: {
-    name: string;
-    email: string;
-    password: string;
-    phone?: string | null;
-    isDoctor?: boolean;
-    clinic?: string | null;
-  },
-  tx: Tx | typeof db = db
-): Promise<string | null> {
-  const passwordHash = await hashPassword(input.password);
-  const [user] = await tx
-    .insert(users)
-    .values({
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      isDoctor: input.isDoctor ?? false,
-      clinic: input.isDoctor ? input.clinic : null,
-      passwordHash,
-    })
-    .onConflictDoNothing({ target: users.email })
-    .returning({ id: users.id });
-  return user?.id ?? null;
-}
-
-/** Only call from a Server Action or Route Handler: it sets a cookie. */
+/** Only call from a Server Action or Route Handler: it sets a cookie. The DB stores only a hash of the token. */
 export async function createSession(userId: string): Promise<void> {
-  const id = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await db.insert(sessions).values({ id, userId, expiresAt });
-  (await cookies()).set(SESSION_COOKIE, id, {
+  const token = randomToken(32);
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+  await db.insert(sessions).values({ id: sha256(token), userId, expiresAt });
+  (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -65,29 +42,34 @@ export async function createSession(userId: string): Promise<void> {
   });
 }
 
-/** The signed-in user, or null if the cookie is missing or the session expired. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const [row] = await db
-    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone, isDoctor: users.isDoctor })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      emailReminders: users.emailReminders,
+      dailyDigest: users.dailyDigest,
+    })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.id, token), gt(sessions.expiresAt, sql`now()`)))
+    .where(and(eq(sessions.id, sha256(token)), gt(sessions.expiresAt, sql`now()`)))
     .limit(1);
   return row ?? null;
 });
 
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth");
+  if (!user) redirect("/sign-in");
   return user;
 }
 
-/** Only call from a Server Action: deletes the session row and the cookie. */
-export async function signOut(): Promise<void> {
+export async function destroySession(): Promise<void> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (token) await db.delete(sessions).where(eq(sessions.id, token));
+  if (token) await db.delete(sessions).where(eq(sessions.id, sha256(token)));
   store.delete(SESSION_COOKIE);
 }

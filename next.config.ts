@@ -1,19 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   experimental: {
     agentFeedback: true,
-    // forbidden() renders app/forbidden.tsx and answers Server Actions with 403.
-    authInterrupts: true,
-    // Only validate segments that explicitly opt in with `export const instant`.
-    // Pulse renders per request (session + language cookie), see app/layout.tsx.
-    instantInsights: {
-      validationLevel: "manual-warning",
-    },
+    // Record uploads and prescription photos go through Server Actions (8 MB files + form overhead).
+    serverActions: { bodySizeLimit: "9mb" },
   },
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {
@@ -21,6 +13,18 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+        ],
+      },
+    ];
   },
 };
 

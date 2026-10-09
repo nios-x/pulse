@@ -1,106 +1,111 @@
 import Link from "next/link";
-import { ChevronRightIcon, DropletIcon, HeartPulseIcon, PillIcon } from "lucide-react";
+import { ChevronRight, Droplet, TriangleAlert } from "lucide-react";
 import { MemberAvatar } from "@/components/health/member-avatar";
-import { StatusBadge } from "@/components/health/status-badge";
-import type { FamilyMember } from "@/lib/family";
-import type { Translate } from "@/lib/i18n";
+import { RoleBadge } from "@/components/health/role-badge";
+import { StatusBadge, vitalTone } from "@/components/health/status-badge";
+import type { Member, Vital } from "@/db/schema";
+import { ageFrom } from "@/lib/dates";
+import { relationLabel } from "@/lib/labels";
+import { classify, formatReading, VITAL_META } from "@/lib/vitals";
 import { cn } from "@/lib/utils";
 
-function Row({ icon: Icon, label, value, badge }: { icon: typeof PillIcon; label: string; value: React.ReactNode; badge?: React.ReactNode }) {
-  return (
-    <div className="flex min-h-11 items-center gap-3">
-      <Icon className="size-[1.125rem] shrink-0 text-ink-3" aria-hidden />
-      <span className="w-24 shrink-0 text-[0.9375rem] text-ink-2">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-base font-semibold tabular">{value}</span>
-      {badge}
-    </div>
-  );
-}
-
-/** One person on the family desk: who they are, and how today looks. */
-export function MemberCard({ member: m, t, style }: { member: FamilyMember; t: Translate; style?: React.CSSProperties }) {
-  const p = m.demo?.profile;
-  const taken = m.doses.filter((d) => d.status === "taken").length;
-  const late = m.doses.some((d) => d.late);
-  const tones = [m.sugar?.status.tone, m.bp?.status.tone, late ? "alert" : undefined];
-  const needsLook = tones.includes("alert");
+export function MemberCard({
+  member,
+  isMe,
+  latest,
+  doses,
+  alertCount,
+}: {
+  member: Member;
+  isMe: boolean;
+  latest: Map<string, Vital> | undefined;
+  doses: { taken: number; total: number };
+  alertCount: number;
+}) {
+  const age = ageFrom(member.dateOfBirth);
+  const severeAllergy = member.allergies.find((a) => a.severity === "severe");
+  // Show the two readings that matter most for this person
+  const kinds = (["bp", "sugar", "temperature", "weight"] as const).filter((k) => latest?.has(k)).slice(0, 2);
+  const pct = doses.total ? Math.round((doses.taken / doses.total) * 100) : 0;
 
   return (
     <Link
-      href={`/p/${m.id}`}
-      style={style}
-      className="settle sheet group flex flex-col gap-4 rounded-2xl p-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_oklch(1_0_0/0.9),0_24px_40px_-24px_oklch(0.35_0.05_150/0.45)]"
+      href={`/members/${member.id}`}
+      className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-pop focus-visible:outline-offset-2"
     >
       <div className="flex items-start gap-3.5">
-        <MemberAvatar name={m.name} index={m.index} size="lg" />
+        <MemberAvatar name={member.name} tone={member.avatarTone} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xl font-semibold tracking-[-0.02em]">{m.name}</p>
-          <p className="text-[0.9375rem] text-ink-2">
-            {[m.age !== null ? t("member.age", { age: m.age }) : null, m.city].filter(Boolean).join(" · ")}
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-lg font-semibold">{member.name}</h3>
+          </div>
+          <p className="text-[0.9375rem] text-muted-foreground">
+            {relationLabel(member.relation, member.sex, isMe)}
+            {age != null && <> · {age} yrs</>}
           </p>
-          <p className="mt-0.5 text-sm text-ink-3">{t("member.yourRole", { role: t(`approle.${m.appRole}`) })}</p>
         </div>
-        {p ? (
-          <span className="flex flex-col items-center rounded-xl border border-edge bg-sheet px-2.5 py-1.5 leading-none" title={t("member.bloodGroup")}>
-            <span className="text-[0.6875rem] font-medium text-ink-3">{t("member.bloodShort")}</span>
-            <span className="mt-1 text-xl font-bold tracking-tight">{p.bloodGroup}</span>
+        {member.bloodGroup && (
+          <span className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-sm font-semibold tabular" title="Blood group">
+            <Droplet className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            <span className="sr-only">Blood group </span>
+            {member.bloodGroup}
           </span>
-        ) : null}
+        )}
       </div>
 
-      <div className="flex flex-col divide-y divide-edge/70">
-        {m.can.view_vitals ? (
-          <>
-            {m.sugar ? (
-              <Row
-                icon={DropletIcon}
-                label={t("member.sugar")}
-                value={`${m.sugar.mgdl} mg/dL`}
-                badge={<StatusBadge tone={m.sugar.status.tone} size="sm">{t(`vital.${m.sugar.status.label}`)}</StatusBadge>}
-              />
-            ) : null}
-            {m.bp ? (
-              <Row
-                icon={HeartPulseIcon}
-                label={t("member.bp")}
-                value={`${m.bp.systolic}/${m.bp.diastolic}`}
-                badge={<StatusBadge tone={m.bp.status.tone} size="sm">{t(`vital.${m.bp.status.label}`)}</StatusBadge>}
-              />
-            ) : null}
-            {!m.sugar && !m.bp ? <Row icon={HeartPulseIcon} label={t("member.vitals")} value={<span className="font-normal text-ink-3">{t("member.noReadings")}</span>} /> : null}
-          </>
-        ) : null}
-        <Row
-          icon={PillIcon}
-          label={t("member.today")}
-          value={
-            m.doses.length ? (
-              t("member.dosesTaken", { taken, total: m.doses.length })
-            ) : (
-              <span className="font-normal text-ink-3">{t("member.noMeds")}</span>
-            )
-          }
-          badge={late ? <StatusBadge tone="alert" size="sm">{t("dose.state.late")}</StatusBadge> : null}
-        />
-      </div>
+      <dl className="mt-5 grid grid-cols-2 gap-3">
+        {kinds.length === 0 && (
+          <div className="col-span-2 rounded-lg bg-surface px-3 py-3 text-sm text-muted-foreground">No readings yet</div>
+        )}
+        {kinds.map((k) => {
+          const v = latest!.get(k)!;
+          const c = classify(v);
+          const t = vitalTone(c.status);
+          return (
+            <div key={k} className="rounded-lg bg-surface px-3 py-2.5">
+              <dt className="text-sm text-muted-foreground">{VITAL_META[k].short}</dt>
+              <dd className="mt-1 flex flex-col gap-1.5">
+                <span className="text-lg font-semibold tabular">
+                  {formatReading(v)} <span className="text-sm font-normal text-muted-foreground">{VITAL_META[k].unit}</span>
+                </span>
+                {k !== "weight" && <StatusBadge tone={t.tone} icon={t.icon} label={c.label} size="sm" />}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
 
-      <div className="mt-auto flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-          {(p?.conditions ?? []).slice(0, 2).map((c) => (
-            <span key={c.name} className="rounded-lg bg-well px-2 py-0.5 text-sm text-ink-2">
-              {c.name}
-            </span>
-          ))}
-          {p && p.conditions.length === 0 ? <span className="text-sm text-ink-3">{t("member.noConditions")}</span> : null}
+      <div className="mt-4 space-y-1.5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Today&apos;s medicines</span>
+          <span className="font-medium tabular">{doses.total ? `${doses.taken} of ${doses.total} taken` : "None scheduled"}</span>
         </div>
-        <span
-          className={cn(
-            "flex items-center gap-0.5 text-[0.9375rem] font-semibold text-sage-deep",
-            needsLook && "text-alert-ink"
+        <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Today's medicines taken" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+          <div className={cn("h-full rounded-full transition-[width] duration-200", pct === 100 ? "bg-success" : "bg-primary")} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {severeAllergy && <StatusBadge tone="warning" icon={TriangleAlert} label={`Allergy: ${severeAllergy.name}`} size="sm" />}
+        {member.conditions.slice(0, severeAllergy ? 1 : 2).map((c) => (
+          <span key={c.name} className="inline-flex h-6 items-center rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground">
+            {c.name}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-auto flex items-center justify-between gap-2 pt-5">
+        <div className="flex items-center gap-2">
+          {member.userId ? <RoleBadge role={member.role} size="sm" /> : <span className="text-xs text-muted-foreground">No login · managed by family</span>}
+          {alertCount > 0 && (
+            <span className="inline-flex h-6 items-center gap-1 rounded-full bg-warning-soft px-2 text-xs font-medium text-warning">
+              <TriangleAlert className="size-3.5" aria-hidden="true" />
+              {alertCount} alert{alertCount > 1 ? "s" : ""}
+            </span>
           )}
-        >
-          {needsLook ? t("member.needsLook") : t("member.open")}
-          <ChevronRightIcon className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
+        </div>
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+          Profile <ChevronRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden="true" />
         </span>
       </div>
     </Link>
